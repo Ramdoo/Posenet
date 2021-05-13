@@ -1,6 +1,3 @@
-//
-// Created by 90573 on 2021/4/15.
-//
 // NOTE: for DEBUG test
 
 #ifndef POSENET_TEST4_UL_GENPARAM_H

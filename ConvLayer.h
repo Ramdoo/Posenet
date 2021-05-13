@@ -1,7 +1,3 @@
-//
-// Created by 90573 on 2021/4/12.
-//
-
 #include <ap_int.h>
 #include <hls_stream.h>
 #include "Padding.h"
