@@ -1,9 +1,4 @@
 // NOTE: for DEBUG test
-
-#ifndef POSENET_TEST4_UL_GENPARAM_H
-#define POSENET_TEST4_UL_GENPARAM_H
-
-
 #include <iostream>
 #include <fstream>
 #include <ap_int.h>
@@ -11,10 +6,10 @@
 using namespace std;
 
 template<
-        unsigned K,
-        unsigned PE=16,
-        unsigned SIMD=16,
-        unsigned W_BIT=8
+        unsigned SIMD,
+        unsigned PE,
+        unsigned W_BIT,
+        unsigned SIZE
         >
 void GenParamW(const char *path
                //const unsigned IN_CH, //TODO:
@@ -23,7 +18,7 @@ void GenParamW(const char *path
     ofstream f(path, ios::out);
     for (unsigned p = 0; p < PE; ++p) {
         f << "{";
-        for (unsigned k = 0; k < K*K; ++k) {
+        for (unsigned k = 0; k < SIZE; ++k) {
             ap_int<SIMD*W_BIT> temp_wgt = 0;
             for (unsigned s = 0; s < SIMD; ++s) {
                 temp_wgt = temp_wgt << W_BIT;
@@ -32,29 +27,28 @@ void GenParamW(const char *path
             cout << hex ;
             f << f.fill(',') <<  "\"" << temp_wgt << "\"";
         }
-        f << "}" << endl;
+        f << "}," << endl;
     }
     f.close();
 }
 
 
+
 template<
-        unsigned PE=16,
-        unsigned SIMD=16,
-        unsigned BIAS_BIT=16
+        unsigned PE,
+        unsigned BIAS_BIT,
+        unsigned SIZE
 >
 void GenParamB(const char *path) {
     ofstream f(path, ios::out);
     for (unsigned p = 0; p < PE; ++p) {
         f << "{";
-        ap_int<SIMD*BIAS_BIT> temp_wgt = 0;
-        for (unsigned s = 0; s < SIMD; ++s) {
-            temp_wgt = temp_wgt << BIAS_BIT;
-            temp_wgt |= ap_int<SIMD*BIAS_BIT>(ap_int<BIAS_BIT>(rand() % 3) );
+        for (unsigned i = 0; i < SIZE; ++i) {
+            ap_int<BIAS_BIT> temp_wgt = ap_int<BIAS_BIT>(rand() % 3);
+            cout << hex ;
+            f << f.fill(',') <<  "\"" << temp_wgt << "\"";
         }
-        cout << hex ;
-        f << f.fill(',') <<  "\"" << temp_wgt << "\"";
-        f << "}" << endl;
+        f << "}," << endl;
     }
     f.close();
 }
@@ -81,4 +75,3 @@ void GenParamM(const char *path) {
     f.close();
 }
 
-#endif //POSENET_TEST4_UL_GENPARAM_H

@@ -35,8 +35,8 @@
 #define POSE_DECV1_COL        6
 #define POSE_DECV1_INCH       128
 #define POSE_DECV1_OUTCH      128
-#define POSE_DECV1_SIMD       4
-#define POSE_DECV1_PE         4
+#define POSE_DECV1_SIMD       16
+#define POSE_DECV1_PE         16
 #define WGT_DECV1_SIZE        288
 #define BIAS_M0_DECV1_SIZE    32
 
@@ -53,8 +53,8 @@
 #define POSE_DECV3_COL        12
 #define POSE_DECV3_INCH       128
 #define POSE_DECV3_OUTCH      128
-#define POSE_DECV3_SIMD       4
-#define POSE_DECV3_PE         4
+#define POSE_DECV3_SIMD       16
+#define POSE_DECV3_PE         16
 #define WGT_DECV3_SIZE        288
 #define BIAS_M0_DECV3_SIZE    32
 
@@ -71,8 +71,8 @@
 #define POSE_DECV5_COL        24
 #define POSE_DECV5_INCH       128
 #define POSE_DECV5_OUTCH      128
-#define POSE_DECV5_SIMD       4
-#define POSE_DECV5_PE         4
+#define POSE_DECV5_SIMD       16
+#define POSE_DECV5_PE         16
 #define WGT_DECV5_SIZE        288
 #define BIAS_M0_DECV5_SIZE    32
 
@@ -91,7 +91,7 @@
 #define POSE_PWCV7_OUTCH      17
 #define POSE_PWCV7_SIMD       4
 #define POSE_PWCV7_PE         4
-#define WGT_PWCV7_SIZE        1024
+#define WGT_PWCV7_SIZE        136
 #define BIAS_M0_PWCV7_SIZE    32
 
 

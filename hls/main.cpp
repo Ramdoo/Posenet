@@ -9,7 +9,7 @@
 #include "MatrixVectorActUnit.h"
 #include "ConvLayer.h"
 #include "GenParam.h"//for DEBUG test
-#include "Params.h"//for DEBUG test
+#include "DebugParams.h"//for DEBUG test
 
 #include "Posenet.h"
 
@@ -22,6 +22,11 @@ using namespace std;
 using namespace hls;
 
 int main() {
+    //GenParamW<1,4,4,8,WGT_PWCV7_SIZE>("..\\Test\\testw.txt");
+    //GenParamW<16,1,8,WGT_DECV1_SIZE>("..\\Test\\testw.txt");
+    //GenParamB<16,16,BIAS_M0_DECV1_SIZE>("..\\Test\\testb.txt");
+
+
     const unsigned CONV0_IN_ROW = 3;
     const unsigned CONV0_IN_COL = 5;
 
