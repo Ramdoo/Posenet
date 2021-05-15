@@ -190,6 +190,7 @@ void PwcvMatrixVectorActUnit(
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
+#pragma HLS ARRAY_PARTITION variable=acc complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS LOOP_TRIPCOUNT min=4800 max=43200
@@ -551,6 +552,7 @@ cout << "total_reps : " << total_reps << endl;
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
+#pragma HLS ARRAY_PARTITION variable=acc complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS LOOP_TRIPCOUNT min=768 max=43200
@@ -792,7 +794,7 @@ void DwcvMatrixVectorActUnitT(
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[128];
-#pragma HLS ARRAY_PARTITION variable=acc complete dim=0
+#pragma HLS ARRAY_PARTITION variable=acc block factor=8 dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS LOOP_TRIPCOUNT min=221184 max=221184
@@ -909,6 +911,7 @@ void PwcvMatrixVectorActUnitT(
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
+#pragma HLS ARRAY_PARTITION variable=acc complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS LOOP_TRIPCOUNT min=4800 max=43200

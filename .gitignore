@@ -45,3 +45,6 @@ hls/.idea/modules.xml
 hls/.idea/misc.xml
 hls/.idea/hls.iml
 hls/.idea/dataSources.local.xml
+hls/.idea/deployment.xml
+hls/.idea/sshConfigs.xml
+hls/.idea/webServers.xml
