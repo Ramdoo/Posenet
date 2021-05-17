@@ -189,7 +189,6 @@ void PwcvMatrixVectorActUnit(
 
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
-    unsigned tile         = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
@@ -224,8 +223,7 @@ void PwcvMatrixVectorActUnit(
         for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-            //ap_int<SIMD*W_BIT> temp_wgt = wgt_buf((p+1)*SIMD*W_BIT-1, p*SIMD*W_BIT)
-            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf(p<< (LOG_SIMD+LOG_W_BIT)+SIMD+W_BIT-1, p<<(LOG_SIMD+LOG_W_BIT));
+            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf(p<<(LOG_SIMD+LOG_W_BIT)+(SIMD+W_BIT-1), p<<(LOG_SIMD+LOG_W_BIT));
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]:" << acc[p];
 #endif
@@ -236,7 +234,6 @@ void PwcvMatrixVectorActUnit(
 #endif
         }
 
-        ++tile;
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
@@ -267,7 +264,6 @@ void PwcvMatrixVectorActUnit(
             ++out_fold_cnt;
             if (out_fold_cnt == OUTPUT_FOLE) {
                 out_fold_cnt = 0;
-                tile = 0;
             }
         }
     }
@@ -316,8 +312,6 @@ void DwcvMatrixVectorActUnit(
     cout << dec << "CH : " << CH << endl;
 #endif
     unsigned in_fold_cnt  = 0;
-    unsigned out_fold_cnt = 0;
-    unsigned tile         = 0;
     unsigned ch_nums      = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
@@ -358,7 +352,6 @@ void DwcvMatrixVectorActUnit(
 #endif
         }
 
-        ++tile;
         ++in_fold_cnt;
         ++ch_nums;
         if (ch_nums == IN_CH_NUMS) {
@@ -369,6 +362,7 @@ void DwcvMatrixVectorActUnit(
             ap_int<PE*OUT_BIT> out_buf;
             for (unsigned nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS LOOP_TRIPCOUNT min=10 max=30
+#pragma HLS PIPELINE II=1
                 ap_int<PE*BIAS_BIT> bias_buf = bias.read();
                 ap_uint<PE*M0_BIT>  m0_buf   = m0.read();
                 for (ap_int<8> p = 0; p < PE; ++p) {
@@ -393,7 +387,6 @@ void DwcvMatrixVectorActUnit(
                 cout << hex << "out_but: " << out_buf << endl;
 #endif
             }
-            tile = 0;
         }
     }
 }
@@ -562,7 +555,6 @@ cout << "total_reps : " << total_reps << endl;
 
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
-    unsigned tile         = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
@@ -608,7 +600,6 @@ cout << "total_reps : " << total_reps << endl;
 #endif
         }
 
-        ++tile;
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
@@ -643,7 +634,6 @@ cout << "total_reps : " << total_reps << endl;
             ++out_fold_cnt;
             if (out_fold_cnt == OUTPUT_FOLE) {
                 out_fold_cnt = 0;
-                tile = 0;
             }
         }
     }
