@@ -28,8 +28,8 @@ void DwConvLayerAlpha(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         stream<ap_int<SIMD*W_BIT>> &weights,
-        stream<ap_int<BIAS_M0_ARRAYSIZE*PE*BIAS_BIT>> &bias,
-        stream<ap_uint<BIAS_M0_ARRAYSIZE*PE*M0_BIT>> &m0,
+        stream<ap_int<480*BIAS_BIT>> &bias,
+        stream<ap_uint<480*M0_BIT>> &m0,
         const unsigned IN_ROW,
         const unsigned IN_COL,
         const unsigned S,
@@ -203,12 +203,12 @@ void DeConvLayerT(
     stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
     StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, K*K*INTER_ROW*INTER_COL*IN_CH_NUMS>(swu_out, adj_out);
 
-    stream<ap_int<IN_CH_NUMS*IN_CH*IN_BIT>> mvau_out("mvau_out");
+    stream<ap_int<IN_CH*IN_BIT>> mvau_out("mvau_out");
     DwcvMatrixVectorActUnitT<IN_CH_NUMS*IN_CH*K*K, OUT_CH, IN_BIT, IN_CH_NUMS*IN_CH/SIMD, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
                                 RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE, OUT_ROW*OUT_COL>
                             (adj_out, mvau_out, weights, bias, m0);
 
-    StreamingDataWidthConverter_BatchT<IN_CH_NUMS*IN_CH*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*IN_CH_NUMS>(mvau_out, out);
+    StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*IN_CH_NUMS>(mvau_out, out);
 }
 
 
