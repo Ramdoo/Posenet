@@ -26,8 +26,8 @@
 #define POSE_PWCV0_COL        6
 #define POSE_PWCV0_INCH       160
 #define POSE_PWCV0_OUTCH      128
-#define POSE_PWCV0_SIMD       4
-#define POSE_PWCV0_PE         4
+#define POSE_PWCV0_SIMD       8
+#define POSE_PWCV0_PE         8
 #define WGT_PWCV0_SIZE        1280
 #define BIAS_M0_PWCV0_SIZE    32
 
@@ -44,8 +44,8 @@
 #define POSE_PWCV2_COL        12
 #define POSE_PWCV2_INCH       128
 #define POSE_PWCV2_OUTCH      128
-#define POSE_PWCV2_SIMD       4
-#define POSE_PWCV2_PE         4
+#define POSE_PWCV2_SIMD       8
+#define POSE_PWCV2_PE         8
 #define WGT_PWCV2_SIZE        1024
 #define BIAS_M0_PWCV2_SIZE    32
 
@@ -62,8 +62,8 @@
 #define POSE_PWCV4_COL        24
 #define POSE_PWCV4_INCH       128
 #define POSE_PWCV4_OUTCH      128
-#define POSE_PWCV4_SIMD       4
-#define POSE_PWCV4_PE         4
+#define POSE_PWCV4_SIMD       8
+#define POSE_PWCV4_PE         8
 #define WGT_PWCV4_SIZE        1024
 #define BIAS_M0_PWCV4_SIZE    32
 
@@ -80,8 +80,8 @@
 #define POSE_PWCV6_COL        48
 #define POSE_PWCV6_INCH       128
 #define POSE_PWCV6_OUTCH      128
-#define POSE_PWCV6_SIMD       4
-#define POSE_PWCV6_PE         4
+#define POSE_PWCV6_SIMD       8
+#define POSE_PWCV6_PE         8
 #define WGT_PWCV6_SIZE        1024
 #define BIAS_M0_PWCV6_SIZE    32
 
@@ -89,8 +89,8 @@
 #define POSE_PWCV7_COL        48
 #define POSE_PWCV7_INCH       128
 #define POSE_PWCV7_OUTCH      17
-#define POSE_PWCV7_SIMD       4
-#define POSE_PWCV7_PE         4
+#define POSE_PWCV7_SIMD       8
+#define POSE_PWCV7_PE         8
 #define WGT_PWCV7_SIZE        136
 #define BIAS_M0_PWCV7_SIZE    32
 
@@ -117,19 +117,21 @@
 // ************************************************************************* //
 // do some typedef
 // ************************************************************************* //
-typedef ap_int<POSE_IN_CH*POSE_IN_BIT>      infm_T;
-typedef ap_int<POSE_OUT_CH*POSE_OUT_BIT>    outfm_T;
-typedef ap_int<POSE_PE*POSE_OUT_BIT>        addfm_T;
-typedef ap_int<POSE_INTER_CH*POSE_OUT_BIT>  innerfm_T;
+typedef ap_int<POSE_IN_CH*POSE_IN_BIT>        infm_T;
+typedef ap_int<POSE_OUT_CH*POSE_OUT_BIT>      outfm_T;
+typedef ap_int<POSE_PE*POSE_OUT_BIT>          addfm_T;
+typedef ap_int<POSE_INTER_CH*POSE_OUT_BIT>    innerfm_T;
 
-typedef ap_int<POSE_SIMD*POSE_W_BIT>        adj_T;
-typedef ap_int<POSE_PE*POSE_W_BIT>          mvau_T;
-typedef ap_int<POSE_SIMD*POSE_W_BIT>        wgt_T;
-typedef ap_int<32*POSE_W_BIT>               wgt32_T;
-typedef ap_int<POSE_BIAS_BIT>               bias_T;
-typedef ap_int<POSE_MUL_BIT>                mul_T;
-typedef ap_uint<POSE_M0_BIT>                m0_T;
+typedef ap_int<POSE_SIMD*POSE_W_BIT>          adj_T;
+typedef ap_int<POSE_PE*POSE_W_BIT>            mvau_T;
+typedef ap_int<POSE_SIMD*POSE_W_BIT>          wgt_T;
+typedef ap_int<32*POSE_W_BIT>                 wgt32_T;
+typedef ap_int<POSE_BIAS_BIT>                 bias_T;
+typedef ap_int<POSE_MUL_BIT>                  mul_T;
+typedef ap_uint<POSE_M0_BIT>                  m0_T;
 
 typedef ap_int<POSE_PE*POSE_SIMD*POSE_W_BIT>  wgt_pe_T;
 typedef ap_int<POSE_PE*POSE_BIAS_BIT>         bias_pe_T;
 typedef ap_uint<POSE_PE*POSE_M0_BIT>          m0_pe_T;
+typedef ap_int<480*POSE_BIAS_BIT>             bias_480_T;
+typedef ap_uint<480*POSE_M0_BIT>              m0_480_T;

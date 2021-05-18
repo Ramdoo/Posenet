@@ -18,7 +18,7 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
     if (InWidth > OutWidth) {
         // emit multiple output words per input word read
         // CASSERT_DATAFLOW(InWidth % OutWidth == 0);
-        const unsigned int outPerIn = InWidth / OutWidth;
+        const unsigned int outPerIn = InChNums;//TODO:InWidth / OutWidth;
         const unsigned int totalIters = NumInWords * outPerIn/* * numReps*/;
         unsigned int o = 0;
         ap_int<InWidth> ei = 0;

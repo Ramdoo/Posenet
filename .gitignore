@@ -101,3 +101,4 @@ hls_stream/.idea/encodings.xml
 hls_stream/.idea/sshConfigs.xml
 hls_stream/.idea/webServers.xml
 hls_stream/CMakeLists.txt
+hls_stream/.idea/dataSources.local.xml

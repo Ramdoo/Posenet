@@ -1,4 +1,4 @@
-#define AP_INT_MAX_W 4096
+#define AP_INT_MAX_W 7680
 #include <hls_stream.h>
 
 #include "ConvLayer.h"
@@ -14,10 +14,10 @@ using namespace hls;
 
 //480channels, 12 cols
 void PosenetBlockAlpha(
-        stream<infm_T> &in,       stream<outfm_T> &out,     stream<addfm_T> &add_fm,
-        stream<wgt_pe_T> &wgt1,   stream<wgt_T> &wgt2,   stream<wgt_pe_T> &wgt3,
-        stream<bias_pe_T> &bias1, stream<bias_pe_T> &bias2, stream<bias_pe_T> &bias3,
-        stream<m0_pe_T> &m0_1,    stream<m0_pe_T> &m0_2,    stream<m0_pe_T> &m0_3,
+        stream<infm_T> &in,       stream<outfm_T> &out,      stream<addfm_T> &add_fm,
+        stream<wgt_pe_T> &wgt1,   stream<wgt_T> &wgt2,       stream<wgt_pe_T> &wgt3,
+        stream<bias_pe_T> &bias1, stream<bias_480_T> &bias2, stream<bias_pe_T> &bias3,
+        stream<m0_pe_T> &m0_1,    stream<m0_480_T> &m0_2,    stream<m0_pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
         const unsigned  INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD
@@ -45,8 +45,8 @@ void PosenetBlockAlpha(
 void PosenetAlpha(
         stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
         stream<wgt_pe_T> &wgt1, stream<wgt_T> &wgt2, stream<wgt_pe_T> &wgt3,
-        stream<bias_pe_T> &bias1, stream<bias_pe_T> &bias2, stream<bias_pe_T> &bias3,
-        stream<m0_pe_T> &m0_1, stream<m0_pe_T> &m0_2, stream<m0_pe_T> &m0_3,
+        stream<bias_pe_T> &bias1, stream<bias_480_T> &bias2, stream<bias_pe_T> &bias3,
+        stream<m0_pe_T> &m0_1, stream<m0_480_T> &m0_2, stream<m0_pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
         const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD,
@@ -57,6 +57,9 @@ void PosenetAlpha(
     PosenetBlockAlpha(in, out, add_fm,
                       wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
                       ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
+    //PosenetBlockAlpha(in, out, add_fm,
+    //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
+    //                 8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
 }
 
 
@@ -308,10 +311,10 @@ void PosenetDecv(
 
 
 void Top(
-        stream<infm_T> &in,             stream<outfm_T> &out,           stream<addfm_T> &add_fm,
-        stream<wgt_pe_T>  &wgt1_alpha,  stream<wgt_T> &wgt2_alpha,      stream<wgt_pe_T> &wgt3_alpha,
-        stream<bias_pe_T> &bias1_alpha, stream<bias_pe_T> &bias2_alpha, stream<bias_pe_T> &bias3_alpha,
-        stream<m0_pe_T>   &m0_1_alpha,  stream<m0_pe_T> &m0_2_alpha,    stream<m0_pe_T> &m0_3_alpha,
+        stream<infm_T> &in,             stream<outfm_T> &out,            stream<addfm_T> &add_fm,
+        stream<wgt_pe_T>  &wgt1_alpha,  stream<wgt_T> &wgt2_alpha,       stream<wgt_pe_T> &wgt3_alpha,
+        stream<bias_pe_T> &bias1_alpha, stream<bias_480_T> &bias2_alpha, stream<bias_pe_T> &bias3_alpha,
+        stream<m0_pe_T>   &m0_1_alpha,  stream<m0_480_T> &m0_2_alpha,    stream<m0_pe_T> &m0_3_alpha,
         const unsigned ROW1_ALPHA, const unsigned ROW2_ALPHA, const unsigned ROW3_ALPHA, const unsigned COL1_ALPHA, const unsigned COL2_ALPHA, const unsigned COL3_ALPHA,
         const unsigned INCH_NUMS1_ALPHA, const unsigned OUTCH_NUMS1_ALPHA, const unsigned CH_NUMS2_ALPHA, const unsigned  INCH_NUMS3_ALPHA, const unsigned OUTCH_NUMS3_ALPHA, const unsigned STRIDE_ALPHA, const unsigned IS_ADD_ALPHA, const unsigned PingPongAlpha,
 #if 0
