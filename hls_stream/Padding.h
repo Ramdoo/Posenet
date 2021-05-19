@@ -71,7 +71,6 @@ template<
         unsigned IN_COL,
         unsigned IN_CH,
         unsigned IN_BIT,
-        unsigned IN_CH_NUMS,
         unsigned P
 >
 void PaddingT(stream<ap_int<IN_CH*IN_BIT>> & in_fm,
@@ -84,10 +83,7 @@ void PaddingT(stream<ap_int<IN_CH*IN_BIT>> & in_fm,
         for (int w = 0; w < OUT_COL; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=6 max=96
 #pragma HLS PIPELINE II=1
-            for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=1 max=1
-                out_fm.write(ZERO);
-            }
+            out_fm.write(ZERO);
         }
     }
     for (int h = 0; h < IN_ROW; ++h) {
@@ -95,15 +91,13 @@ void PaddingT(stream<ap_int<IN_CH*IN_BIT>> & in_fm,
         for (int w = 0; w < OUT_COL; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=6 max=96
 #pragma HLS PIPELINE II=1
-            for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
-                if ((w < P) || (w >= OUT_COL-P)) {
-                    tmp_out = ZERO;
-                } else {
-                    tmp_out = in_fm.read();
-                }
-                out_fm.write(tmp_out);
+            if ((w < P) || (w >= OUT_COL-P)) {
+                tmp_out = ZERO;
+            } else {
+                tmp_out = in_fm.read();
             }
+            out_fm.write(tmp_out);
         }
     }
     for (int h = 0; h < P; ++h) {
@@ -111,10 +105,7 @@ void PaddingT(stream<ap_int<IN_CH*IN_BIT>> & in_fm,
         for (int w = 0; w < OUT_COL; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=6 max=96
 #pragma HLS PIPELINE II=1
-            for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=1 max=1
-                out_fm.write(ZERO);
-            }
+            out_fm.write(ZERO);
         }
     }
 }
@@ -125,9 +116,7 @@ template<
         unsigned IN_ROW,
         unsigned IN_COL,
         unsigned IN_CH,
-        unsigned IN_BIT,
-        unsigned IN_CH_NUMS,
-        unsigned P
+        unsigned IN_BIT
         >
 void DilationPaddingT(
         stream<ap_int<IN_CH*IN_BIT>> &in_fm,
@@ -143,23 +132,20 @@ void DilationPaddingT(
         for (int w = 0; w < OUT_COL; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=6 max=24
 #pragma HLS PIPELINE II=1
-            for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
-                if (h % 2 == 0) {
-                    if (w % 2 == 0) {
-                        tmp_out = in_fm.read();
-                    } else {
-                        tmp_out = ZERO;
-                    }
+            if (h % 2 == 0) {
+                if (w % 2 == 0) {
+                    tmp_out = in_fm.read();
                 } else {
                     tmp_out = ZERO;
                 }
+            } else {
+                tmp_out = ZERO;
+            }
 #if 0
-                cout << dec << "h: " << h << ", w: " << w;
+            cout << dec << "h: " << h << ", w: " << w;
                 cout << hex << ", tmp_out: " << tmp_out << endl;
 #endif
-                out_fm.write(tmp_out);
-            }
+            out_fm.write(tmp_out);
         }
     }
 

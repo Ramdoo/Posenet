@@ -30,8 +30,8 @@ ap_int<MUL_BIT> SimdMul(
     for (ap_uint<8> p = 0; p < SIMD; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-        ap_int<W_BIT> temp_wgt = weights( p<<LOG_W_BIT+(W_BIT-1), p<<LOG_W_BIT);
-        ap_int<IN_BIT> temp_in = in( p<<LOG_IN_BIT+(IN_BIT-1), p<<LOG_IN_BIT);
+        ap_int<W_BIT> temp_wgt = weights( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
+        ap_int<IN_BIT> temp_in = in( (p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
         ap_int<W_BIT+IN_BIT> mul;
         mul = temp_wgt * temp_in;
         res += mul;
@@ -56,8 +56,8 @@ ap_int<MUL_BIT> SimdMulLut(
     for (ap_uint<8> p = 0; p < SIMD; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-        ap_int<W_BIT> temp_wgt = weights( p<<LOG_W_BIT+(W_BIT-1), p<<LOG_W_BIT);
-        ap_int<IN_BIT> temp_in = in( p<<LOG_IN_BIT+(IN_BIT-1), p<<LOG_IN_BIT);
+        ap_int<W_BIT> temp_wgt = weights( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
+        ap_int<IN_BIT> temp_in = in( (p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
         ap_int<W_BIT+IN_BIT> mul;
 #pragma HLS RESOURCE variable=mul core=Mul_LUT
         mul = temp_wgt * temp_in;
@@ -150,7 +150,7 @@ ap_int<OUT_BIT> ReLUAdd(
 }
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
+//通用的函数， 将尺寸大小和通道数作为入参传�?
 template<
         unsigned IN_BIT,
         unsigned OUT_BIT,
@@ -224,7 +224,7 @@ void PwcvMatrixVectorActUnit(
         for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf(p<<(LOG_SIMD+LOG_W_BIT)+(SIMD+W_BIT-1), p<<(LOG_SIMD+LOG_W_BIT));
+            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT)));
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]:" << acc[p];
 #endif
@@ -244,12 +244,12 @@ void PwcvMatrixVectorActUnit(
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                ap_int<BIAS_BIT> tmp_bias = bias_buf(p<<LOG_BIAS_BIT+BIAS_BIT-1, p<<LOG_BIAS_BIT);
-                ap_int<M0_BIT>   tmp_m0   = m0_buf(p<<LOG_M0_BIT+M0_BIT-1, p<<LOG_M0_BIT);
-                out_buf(p<<LOG_OUT_BIT+(OUT_BIT-1), p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>
+                ap_int<BIAS_BIT> tmp_bias = bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT));
+                ap_int<M0_BIT>   tmp_m0   = m0_buf((p<<LOG_M0_BIT)+(M0_BIT-1), (p<<LOG_M0_BIT));
+                out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>
                                                                             (acc[p], tmp_bias, tmp_m0);
             }
-#if MVAU_DEBUG
+#if 0//MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
             for (unsigned p = 0; p < PE; ++p) {
                 cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
@@ -272,7 +272,7 @@ void PwcvMatrixVectorActUnit(
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
+//通用的函数， 将尺寸大小和通道数作为入参传�?
 template<
         unsigned IN_BIT,
         unsigned OUT_BIT,
@@ -342,8 +342,8 @@ void DwcvMatrixVectorActUnit(
 #if MVAU_DEBUG
             cout << hex << "before acc[" << index << "]: " << acc[p];
 #endif
-            ap_int<W_BIT> temp_wgt = wgt_buf(p << LOG_W_BIT + (W_BIT - 1), p << LOG_W_BIT);
-            ap_int<IN_BIT> temp = temp_in( p<<LOG_IN_BIT+(IN_BIT-1), p<<LOG_IN_BIT);
+            ap_int<W_BIT> temp_wgt = wgt_buf((p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
+            ap_int<IN_BIT> temp = temp_in((p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
             ap_int<W_BIT+IN_BIT> mul;
             mul = temp_wgt * temp;
             acc[index] += mul;
@@ -367,18 +367,18 @@ void DwcvMatrixVectorActUnit(
 #pragma HLS LOOP_TRIPCOUNT min=10 max=30
 #pragma HLS PIPELINE II=1
                 ap_int<PE*OUT_BIT>  out_pe_buf;
-                ap_int<PE*BIAS_BIT> bias_pe_buf = bias_buf(nums<<(LOG_PE+LOG_BIAS_BIT)+(PE+BIAS_BIT-1), nums<<(LOG_PE+LOG_BIAS_BIT));
-                ap_uint<PE*M0_BIT>  m0_pe_buf   = m0_buf(  nums<<(LOG_PE+LOG_M0_BIT)  +(PE+M0_BIT-1),   nums<<(LOG_PE+LOG_M0_BIT));
+                ap_int<PE*BIAS_BIT> bias_pe_buf = bias_buf((nums<<(LOG_PE+LOG_BIAS_BIT))+(PE*BIAS_BIT-1), nums<<(LOG_PE+LOG_BIAS_BIT));
+                ap_uint<PE*M0_BIT>  m0_pe_buf   = m0_buf(  (nums<<(LOG_PE+LOG_M0_BIT))  +(PE*M0_BIT-1),   nums<<(LOG_PE+LOG_M0_BIT));
                 for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                    ap_int<BIAS_BIT> tmp_bias = bias_pe_buf(p<<LOG_BIAS_BIT+(BIAS_BIT-1), p<<LOG_BIAS_BIT);
-                    ap_uint<M0_BIT>  tmp_m0   = m0_pe_buf(  p<<LOG_M0_BIT  +(M0_BIT-1),   p<<LOG_M0_BIT);
-                    out_pe_buf(p<<LOG_OUT_BIT+OUT_BIT-1, p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
+                    ap_int<BIAS_BIT> tmp_bias = bias_pe_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT));
+                    ap_uint<M0_BIT>  tmp_m0   = m0_pe_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT));
+                    out_pe_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
                                                                                 acc[nums*PE+p], tmp_bias, tmp_m0);
                 }
-                out_buf(nums<<(LOG_PE+LOG_OUT_BIT)+PE+OUT_BIT-1, nums<<(LOG_PE+LOG_OUT_BIT));
-#if MVAU_DEBUG
+                out_buf((nums<<(LOG_PE+LOG_OUT_BIT))+(PE*OUT_BIT-1), (nums<<(LOG_PE+LOG_OUT_BIT)));
+#if 0//MVAU_DEBUG
                 cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
                 for (unsigned p = 0; p < PE; ++p) {
                     cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
@@ -398,7 +398,7 @@ void DwcvMatrixVectorActUnit(
 
 
 #if 0
-//通用的函数， 将尺寸大小和通道数作为入参传入
+//通用的函数， 将尺寸大小和通道数作为入参传�?
 template<
         unsigned IN_BIT,
         unsigned OUT_BIT,
@@ -469,8 +469,8 @@ void DwcvMatrixVectorActUnit1(
 #if MVAU_DEBUG
             cout << hex << "before acc[" << index << "]: " << acc[p];
 #endif
-            ap_int<W_BIT> temp_wgt = temp_wgt_simd( p<<LOG_W_BIT+(W_BIT-1), p<<LOG_W_BIT);
-            ap_int<IN_BIT> temp = temp_in( p<<LOG_IN_BIT+(IN_BIT-1), p<<LOG_IN_BIT);
+            ap_int<W_BIT> temp_wgt = temp_wgt_simd( (p<<LOG_W_BIT)+(W_BIT-1), p<<LOG_W_BIT);
+            ap_int<IN_BIT> temp = temp_in( (p<<LOG_IN_BIT)+(IN_BIT-1), p<<LOG_IN_BIT);
             ap_int<W_BIT+IN_BIT> mul;
             mul = temp_wgt * temp;
             acc[index] += mul;
@@ -494,7 +494,7 @@ void DwcvMatrixVectorActUnit1(
                 for (ap_int<8> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                    out_buf(p<<LOG_OUT_BIT+OUT_BIT-1, p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
+                    out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
                             acc[nums*PE+p], bias[p][nums], m0[p][nums]);
                 }
 #if MVAU_DEBUG
@@ -518,7 +518,7 @@ void DwcvMatrixVectorActUnit1(
 #endif
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
+//通用的函数， 将尺寸大小和通道数作为入参传�?
 template<
 unsigned IN_BIT,
 unsigned OUT_BIT,
@@ -594,7 +594,7 @@ cout << "total_reps : " << total_reps << endl;
         for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf(p<< (LOG_SIMD+LOG_W_BIT)+SIMD+W_BIT-1, p<<(LOG_SIMD+LOG_W_BIT));
+            ap_int<SIMD*W_BIT> temp_wgt = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), p<<(LOG_SIMD+LOG_W_BIT));
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]:" << acc[p];
 #endif
@@ -617,13 +617,13 @@ cout << "total_reps : " << total_reps << endl;
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                ap_int<BIAS_BIT> tmp_bias = bias_buf(p<<LOG_BIAS_BIT+BIAS_BIT-1, p<<LOG_BIAS_BIT);
-                ap_int<M0_BIT>   tmp_m0   = m0_buf(p<<LOG_M0_BIT+M0_BIT-1, p<<LOG_M0_BIT);
-                ap_int<IN_BIT>   temp_addfm = addfm_buf(p<<LOG_OUT_BIT+(OUT_BIT-1), p<<LOG_OUT_BIT);
-                out_buf( p<<LOG_OUT_BIT+(OUT_BIT-1), p<<LOG_OUT_BIT) = ReLUAdd<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>
+                ap_int<BIAS_BIT> tmp_bias = bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT));
+                ap_int<M0_BIT>   tmp_m0   = m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT));
+                ap_int<IN_BIT>   temp_addfm = addfm_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT));
+                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLUAdd<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>
                                                                                 (acc[p], temp_addfm, tmp_bias, tmp_m0, IS_ADD);
             }
-#if MVAU_DEBUG
+#if 0//MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
         for (unsigned p = 0; p < PE; ++p) {
             cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
@@ -737,7 +737,7 @@ for (unsigned rep = 0; rep < total_reps; ++rep) {
         for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                out_buf( p<<LOG_OUT_BIT+(OUT_BIT-1), p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
+                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
             }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
@@ -763,7 +763,7 @@ for (unsigned rep = 0; rep < total_reps; ++rep) {
 #endif
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned MAT_ROW,
         unsigned MAT_COL,
@@ -794,99 +794,88 @@ void DwcvMatrixVectorActUnitT(
 ) {
     static_assert(SIMD == PE, "SIMD is not PE");
 
-    const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
-    //const unsigned OUTPUT_FOLE = MAT_COL/PE;
-    const unsigned OUTPUT_FOLE = 1;
+    //const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
+    const unsigned INPUT_FOLD  = 9;
+    const unsigned OUTPUT_FOLE = MAT_COL/PE;
     const unsigned total_reps = INPUT_FOLD * OUTPUT_FOLE * VECT_NUMS;
 #if MVAU_DEBUG
     const unsigned CH = SIMD*SIMD_NUMS;
     cout << dec << "INPUT_FOLD : " << INPUT_FOLD << endl;
     cout << dec << "OUTPUT_FOLD: " << OUTPUT_FOLE << endl;
+    cout << dec << "VECT_NUMS: " << VECT_NUMS << endl;
     cout << dec << "total_reps : " << total_reps << endl;
     cout << dec << "CH : " << CH << endl;
 #endif
     unsigned in_fold_cnt  = 0;
-    unsigned ch_nums      = 0;
+    unsigned out_fold_cnt  = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
-    ap_int<MUL_BIT> acc[PE][SIMD_NUMS];
+    ap_int<MUL_BIT> acc[PE];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=1
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
-#pragma HLS LOOP_TRIPCOUNT min=62208 max=62208
 #pragma HLS PIPELINE II=1
         temp_in = in_fm.read();
         if (in_fold_cnt == 0) {
-            for (unsigned i = 0; i < SIMD_NUMS; ++i) {
-#pragma HLS PIPELINE II=1
-                for (unsigned p = 0; p < PE; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=16
+            for (unsigned p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                    acc[p][i] = 0;
-                }
+                acc[p] = 0;
             }
         }
 
-        ap_int<SIMD*W_BIT> temp_wgt_simd = weights[in_fold_cnt];
+        ap_int<SIMD*W_BIT> temp_wgt_simd = weights[out_fold_cnt*INPUT_FOLD+in_fold_cnt];
 #if MVAU_DEBUG
         cout << hex << "temp_wgt_simd: " << temp_wgt_simd << endl;
         cout << hex << "temp_in_simd: " << temp_in << endl;
 #endif
         for (ap_uint<8> p = 0; p < SIMD; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
             //unsigned index = ch_nums*SIMD + p;
 #if MVAU_DEBUG
-            cout << hex << "before acc[" << index << "]: " << acc[p];
+            cout << hex << "before acc[" << p << "]: " << acc[p];
 #endif
-            ap_int<W_BIT> temp_wgt = temp_wgt_simd( p<<LOG_W_BIT+(W_BIT-1), p<<LOG_W_BIT);
-            ap_int<IN_BIT> temp = temp_in( p<<LOG_IN_BIT+(IN_BIT-1), p<<LOG_IN_BIT);
+            ap_int<W_BIT> temp_wgt = temp_wgt_simd( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
+            ap_int<IN_BIT> temp = temp_in( (p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
             ap_int<W_BIT+IN_BIT> mul;
             mul = temp_wgt * temp;
-            acc[p][ch_nums] += mul;
+            acc[p] += mul;
 #if MVAU_DEBUG
             cout << hex << ", temp_wgt: " << temp_wgt  << ", temp: " << temp;
-            cout << hex << ", acc[" << index << "]: " << acc[p] << endl;
+            cout << hex << ", acc[" << p << "]: " << acc[p] << endl;
 #endif
         }
 
         ++in_fold_cnt;
-        ++ch_nums;
-        if (ch_nums == SIMD_NUMS) {
-            ch_nums = 0;
-        }
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            for (unsigned nums = 0; nums < SIMD_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
-#pragma HLS PIPELINE II=1
-                ap_int<PE*OUT_BIT> out_buf;
-                for (ap_int<8> p = 0; p < PE; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=16
+            ap_int<PE*OUT_BIT> out_buf;
+            for (ap_int<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                    out_buf(p<<LOG_OUT_BIT+OUT_BIT-1, p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
-                                                                                acc[p][ch_nums], bias[p][nums], m0[p][nums]);
-                }
-                out_fm.write(out_buf);
+                out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
+                        acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
+            }
+            out_fm.write(out_buf);
 #if MVAU_DEBUG
-                cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
-                for (unsigned p = 0; p < PE; ++p) {
-                    cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
-                         << ", acc["<< nums*PE+p << "]: " << acc[nums*PE+p] << ", bias: "
-                         << bias[p][nums] << ", m0: " << m0[p][nums] << endl;
-                }
-                cout << endl;
+            cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
+            for (unsigned p = 0; p < PE; ++p) {
+                cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
+                     << ", acc["<< p << "]: " << acc[p] << ", bias: "
+                     << bias[p][out_fold_cnt] << ", m0: " << m0[p][out_fold_cnt] << endl;
+            }
+            cout << endl;
 #endif
 #if MVAU_DEBUG
-                cout << hex << "out_but: " << out_buf << endl;
+            cout << hex << "out_but: " << out_buf << endl;
 #endif
+            if (++out_fold_cnt == OUTPUT_FOLE) {
+                out_fold_cnt = 0;
             }
         }
     }
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned MAT_ROW,
         unsigned MAT_COL,
@@ -935,7 +924,6 @@ void PwcvMatrixVectorActUnitT(
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
-#pragma HLS LOOP_TRIPCOUNT min=4800 max=43200
 #pragma HLS PIPELINE II=1
         if (out_fold_cnt == 0) {
             temp_in = in_fm.read();
@@ -946,7 +934,6 @@ void PwcvMatrixVectorActUnitT(
 
         if (in_fold_cnt == 0) {
             for (ap_uint<8> p = 0; p < PE; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
 #pragma HLS UNROLL
                 acc[p] = 0;
             }
@@ -960,7 +947,6 @@ void PwcvMatrixVectorActUnitT(
 #endif
 
         for (ap_uint<8> p = 0; p < PE; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
 #pragma HLS UNROLL
             ap_int<SIMD*W_BIT> temp_wgt = weights[p][tile];
 #if MVAU_DEBUG
@@ -979,9 +965,8 @@ void PwcvMatrixVectorActUnitT(
             in_fold_cnt = 0;
             ap_int<PE*OUT_BIT> out_buf;
             for (ap_uint<8> p = 0; p < PE; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
 #pragma HLS UNROLL
-                out_buf( p<<LOG_OUT_BIT+(OUT_BIT-1), p<<LOG_OUT_BIT) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
+                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
             }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
