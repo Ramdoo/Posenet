@@ -54,12 +54,12 @@ void PosenetAlpha(
 ) {
 #pragma HLS stream variable=add_fm depth=1024 dim=1
 
-    PosenetBlockAlpha(in, out, add_fm,
-                      wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-                      ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
     //PosenetBlockAlpha(in, out, add_fm,
     //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-    //                 8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
+    //                  ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
+    PosenetBlockAlpha(in, out, add_fm,
+                      wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
+                     8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
 }
 
 
@@ -211,10 +211,10 @@ void PosenetBeta(
 #endif
 
 
-//后面八层做成独立的加速器,分别是 pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
-//其中 pwcv 的 SIMD和PE都设成4， decv的SIMD设成16
+//后面八层做成独立的加速器,分别�? pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
+//其中 pwcv �? SIMD和PE都设�?4�? decv的SIMD设成16
 void PosenetDecv(
-        stream<infm_T> &in, stream<outfm_T> &out
+        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_PWCV7_OUTCH*POSE_OUT_BIT>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -247,64 +247,59 @@ void PosenetDecv(
 #pragma HLS ARRAY_PARTITION variable = pwcv7_bias complete dim = 1
 #pragma HLS ARRAY_PARTITION variable = pwcv7_m0   complete dim = 1
 
-    stream<innerfm_T> pw0_out("pw0_out");
-#pragma HLS STREAM variable=pw0_out depth=128 dim=1
+    stream<ap_int<POSE_PWCV0_OUTCH*POSE_OUT_BIT>> pw0_out("pw0_out");
+#pragma HLS STREAM variable=pw0_out depth=8 dim=1
 
-    PwConvLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_IN_CH,POSE_IN_BIT,POSE_PWCV0_INCH/POSE_PWCV0_SIMD,
-            POSE_OUT_CH,POSE_OUT_BIT,POSE_PWCV0_OUTCH/POSE_PWCV0_PE,
+    PwConvLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV0_SIMD,POSE_PWCV0_PE,0,WGT_PWCV0_SIZE,BIAS_M0_PWCV0_SIZE>
             (in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
 
-    stream<innerfm_T> de1_out("de1_out");
-#pragma HLS STREAM variable=de1_out depth=128 dim=1
+    stream<ap_int<POSE_DECV1_OUTCH*POSE_OUT_BIT>> de1_out("de1_out");
+#pragma HLS STREAM variable=de1_out depth=8 dim=1
 
-    DeConvLayerT<POSE_DECV1_ROW,POSE_DECV1_COL,POSE_IN_CH,POSE_IN_BIT,POSE_DECV1_INCH/POSE_DECV1_SIMD,POSE_OUT_CH,POSE_OUT_BIT,
+    DeConvLayerT<POSE_DECV1_ROW,POSE_DECV1_COL,POSE_DECV1_INCH,POSE_IN_BIT,POSE_DECV1_INCH/POSE_DECV1_SIMD,POSE_DECV1_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV1_SIMD,POSE_DECV1_PE,0,WGT_DECV1_SIZE,BIAS_M0_DECV1_SIZE>
             (pw0_out, de1_out, decv1_w, decv1_bias, decv1_m0);
 
 
-    stream<innerfm_T> pw2_out("pw2_out");
-#pragma HLS STREAM variable=pw2_out depth=128 dim=1
+    stream<ap_int<POSE_PWCV2_OUTCH*POSE_OUT_BIT>> pw2_out("pw2_out");
+#pragma HLS STREAM variable=pw2_out depth=8 dim=1
 
-    PwConvLayerT<POSE_PWCV2_ROW,POSE_PWCV2_COL,POSE_IN_CH,POSE_IN_BIT,POSE_PWCV2_INCH/POSE_PWCV2_SIMD,
-            POSE_OUT_CH,POSE_OUT_BIT,POSE_PWCV2_OUTCH/POSE_PWCV2_PE,
+    PwConvLayerT<POSE_PWCV2_ROW,POSE_PWCV2_COL,POSE_PWCV2_INCH,POSE_IN_BIT,POSE_PWCV2_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV2_SIMD,POSE_PWCV2_PE,0,WGT_PWCV2_SIZE,BIAS_M0_PWCV2_SIZE>
             (de1_out, pw2_out, pwcv2_w, pwcv2_bias, pwcv2_m0);
 
 
-    stream<innerfm_T> de3_out("de3_out");
-#pragma HLS STREAM variable=de3_out depth=128 dim=1
+    stream<ap_int<POSE_DECV3_OUTCH*POSE_OUT_BIT>> de3_out("de3_out");
+#pragma HLS STREAM variable=de3_out depth=8 dim=1
 
-    DeConvLayerT<POSE_DECV3_ROW,POSE_DECV3_COL,POSE_IN_CH,POSE_IN_BIT,POSE_DECV3_INCH/POSE_DECV3_SIMD,POSE_OUT_CH,POSE_OUT_BIT,
+    DeConvLayerT<POSE_DECV3_ROW,POSE_DECV3_COL,POSE_DECV3_INCH,POSE_IN_BIT,POSE_DECV3_INCH/POSE_DECV3_SIMD,POSE_DECV3_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV3_SIMD,POSE_DECV3_PE,0,WGT_DECV3_SIZE,BIAS_M0_DECV3_SIZE>
             (pw2_out, de3_out, decv3_w, decv3_bias, decv3_m0);
 
-    stream<innerfm_T> pw4_out("pw4_out");
-#pragma HLS STREAM variable=pw4_out depth=128 dim=1
+    stream<ap_int<POSE_PWCV4_OUTCH*POSE_OUT_BIT>> pw4_out("pw4_out");
+#pragma HLS STREAM variable=pw4_out depth=8 dim=1
 
-    PwConvLayerT<POSE_PWCV4_ROW,POSE_PWCV4_COL,POSE_IN_CH,POSE_IN_BIT,POSE_PWCV4_INCH/POSE_PWCV4_SIMD,
-            POSE_OUT_CH,POSE_OUT_BIT,POSE_PWCV4_OUTCH/POSE_PWCV4_PE,
+    PwConvLayerT<POSE_PWCV4_ROW,POSE_PWCV4_COL,POSE_PWCV4_INCH,POSE_IN_BIT,POSE_PWCV4_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV4_SIMD,POSE_PWCV4_PE,0,WGT_PWCV4_SIZE,BIAS_M0_PWCV4_SIZE>
             (de3_out, pw4_out, pwcv4_w, pwcv4_bias, pwcv4_m0);
 
-    stream<innerfm_T> de5_out("de5_out");
-#pragma HLS STREAM variable=de5_out depth=128 dim=1
+    stream<ap_int<POSE_DECV5_OUTCH*POSE_OUT_BIT>> de5_out("de5_out");
+#pragma HLS STREAM variable=de5_out depth=8 dim=1
 
-    DeConvLayerT<POSE_DECV5_ROW,POSE_DECV5_COL,POSE_IN_CH,POSE_IN_BIT,POSE_DECV5_INCH/POSE_DECV5_SIMD,POSE_OUT_CH,POSE_OUT_BIT,
+    DeConvLayerT<POSE_DECV5_ROW,POSE_DECV5_COL,POSE_DECV5_INCH,POSE_IN_BIT,POSE_DECV5_INCH/POSE_DECV5_SIMD,POSE_DECV5_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV5_SIMD,POSE_DECV5_PE,0,WGT_DECV5_SIZE,BIAS_M0_DECV5_SIZE>
             (pw4_out, de5_out, decv5_w, decv5_bias, decv5_m0);
 
 
-    stream<innerfm_T> pw6_out("pw6_out");
-#pragma HLS STREAM variable=pw6_out depth=128 dim=1
+    stream<ap_int<POSE_PWCV6_OUTCH*POSE_OUT_BIT>> pw6_out("pw6_out");
+#pragma HLS STREAM variable=pw6_out depth=8 dim=1
 
-    PwConvLayerT<POSE_PWCV6_ROW,POSE_PWCV6_COL,POSE_IN_CH,POSE_IN_BIT,POSE_PWCV6_INCH/POSE_PWCV6_SIMD,
-            POSE_OUT_CH,POSE_OUT_BIT,POSE_PWCV6_OUTCH/POSE_PWCV6_PE,
+    PwConvLayerT<POSE_PWCV6_ROW,POSE_PWCV6_COL,POSE_PWCV6_INCH,POSE_IN_BIT,POSE_PWCV6_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV6_SIMD,POSE_PWCV6_PE,0,WGT_PWCV6_SIZE,BIAS_M0_PWCV6_SIZE>
             (de5_out, pw6_out, pwcv6_w, pwcv6_bias, pwcv6_m0);
 
-    PwConvLayerT<POSE_PWCV7_ROW,POSE_PWCV7_COL,POSE_IN_CH,POSE_IN_BIT,POSE_PWCV7_INCH/POSE_PWCV7_SIMD,
-            POSE_OUT_CH,POSE_OUT_BIT,POSE_PWCV7_OUTCH/POSE_PWCV7_PE,
+    PwConvLayerT<POSE_PWCV7_ROW,POSE_PWCV7_COL,POSE_PWCV7_INCH,POSE_IN_BIT,POSE_PWCV7_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV7_SIMD,POSE_PWCV7_PE,0,WGT_PWCV7_SIZE,BIAS_M0_PWCV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
 }
@@ -325,7 +320,7 @@ void Top(
         const unsigned ROW1_BETA, const unsigned ROW2_BETA, const unsigned ROW3_BETA, const unsigned COL1_BETA, const unsigned COL2_BETA, const unsigned COL3_BETA,
         const unsigned CH_NUMS1_BETA, const unsigned CH_NUMS2_BETA, const unsigned  CH_NUMS3_BETA, const unsigned STRIDE_BETA, const unsigned IS_ADD_BETA, const unsigned IS_DECONV_BETA, const unsigned PingPongBeta,
 #endif
-        stream<infm_T> &dein, stream<outfm_T> &deout
+        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &dein, stream<ap_int<POSE_PWCV7_OUTCH*POSE_OUT_BIT>> &deout
         ) {
 
 
