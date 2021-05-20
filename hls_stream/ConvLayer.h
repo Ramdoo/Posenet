@@ -191,7 +191,9 @@ void DeConvLayerT(
     const unsigned OUT_COL = IN_COL+IN_COL;
 
     stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
+#pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
     stream<ap_int<IN_CH*IN_BIT> > deconvpad_out("deconvpad_out");
+#pragma HLS RESOURCE variable=deconvpad_out core=FIFO_SRL
     DilationPaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT>(in, deconvpad_out);
     PaddingT<IN_ROW+IN_ROW, IN_COL+IN_COL, IN_CH, IN_BIT, 1>(deconvpad_out, padding_out);
     const unsigned INTER_ROW = IN_ROW+IN_ROW + 2;

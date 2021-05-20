@@ -103,3 +103,6 @@ hls_stream/.idea/webServers.xml
 hls_stream/CMakeLists.txt
 hls_stream/.idea/dataSources.local.xml
 hls_stream/.idea/inspectionProfiles/Project_Default.xml
+hls_stream/Test/conv0mvau_golden.txt
+hls_stream/Test/testb.txt
+hls_stream/Test/testw.txt

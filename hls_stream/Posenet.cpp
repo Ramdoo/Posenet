@@ -54,12 +54,12 @@ void PosenetAlpha(
 ) {
 #pragma HLS stream variable=add_fm depth=1024 dim=1
 
-    //PosenetBlockAlpha(in, out, add_fm,
-    //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-    //                  ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
     PosenetBlockAlpha(in, out, add_fm,
                       wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-                     8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
+                      ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
+    //PosenetBlockAlpha(in, out, add_fm,
+    //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
+    //                8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
 }
 
 
@@ -211,51 +211,51 @@ void PosenetBeta(
 #endif
 
 
-//后面八层做成独立的加速器,分别�? pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
-//其中 pwcv �? SIMD和PE都设�?4�? decv的SIMD设成16
+//后面八层做成独立的加速器,分别�?? pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
+//其中 pwcv �?? SIMD和PE都设�??4�?? decv的SIMD设成16
 void PosenetDecv(
         stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_PWCV7_OUTCH*POSE_OUT_BIT>> &out
 ) {
 #pragma HLS DATAFLOW
 
-#pragma HLS ARRAY_PARTITION variable = pwcv0_w    complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv0_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv0_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=pwcv0_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv0_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv0_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = decv1_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = decv1_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=decv1_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=decv1_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = pwcv2_w    complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv2_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv2_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=pwcv2_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv2_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv2_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = decv3_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = decv3_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=decv3_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=decv3_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = pwcv4_w    complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv4_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv4_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=pwcv4_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv4_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv4_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = decv5_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = decv5_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=decv5_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=decv5_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = pwcv6_w    complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv6_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv6_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=pwcv6_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv6_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv6_m0   complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable = pwcv7_w    complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv7_bias complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = pwcv7_m0   complete dim = 1
+#pragma HLS ARRAY_PARTITION variable=pwcv7_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv7_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=pwcv7_m0   complete dim=1
 
     stream<ap_int<POSE_PWCV0_OUTCH*POSE_OUT_BIT>> pw0_out("pw0_out");
-#pragma HLS STREAM variable=pw0_out depth=8 dim=1
+#pragma HLS RESOURCE variable=pw0_out core=FIFO_SRL
 
     PwConvLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV0_SIMD,POSE_PWCV0_PE,0,WGT_PWCV0_SIZE,BIAS_M0_PWCV0_SIZE>
             (in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
 
     stream<ap_int<POSE_DECV1_OUTCH*POSE_OUT_BIT>> de1_out("de1_out");
-#pragma HLS STREAM variable=de1_out depth=8 dim=1
+#pragma HLS RESOURCE variable=de1_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV1_ROW,POSE_DECV1_COL,POSE_DECV1_INCH,POSE_IN_BIT,POSE_DECV1_INCH/POSE_DECV1_SIMD,POSE_DECV1_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV1_SIMD,POSE_DECV1_PE,0,WGT_DECV1_SIZE,BIAS_M0_DECV1_SIZE>
@@ -263,7 +263,7 @@ void PosenetDecv(
 
 
     stream<ap_int<POSE_PWCV2_OUTCH*POSE_OUT_BIT>> pw2_out("pw2_out");
-#pragma HLS STREAM variable=pw2_out depth=8 dim=1
+#pragma HLS RESOURCE variable=pw2_out core=FIFO_SRL
 
     PwConvLayerT<POSE_PWCV2_ROW,POSE_PWCV2_COL,POSE_PWCV2_INCH,POSE_IN_BIT,POSE_PWCV2_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV2_SIMD,POSE_PWCV2_PE,0,WGT_PWCV2_SIZE,BIAS_M0_PWCV2_SIZE>
@@ -271,21 +271,21 @@ void PosenetDecv(
 
 
     stream<ap_int<POSE_DECV3_OUTCH*POSE_OUT_BIT>> de3_out("de3_out");
-#pragma HLS STREAM variable=de3_out depth=8 dim=1
+#pragma HLS RESOURCE variable=de3_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV3_ROW,POSE_DECV3_COL,POSE_DECV3_INCH,POSE_IN_BIT,POSE_DECV3_INCH/POSE_DECV3_SIMD,POSE_DECV3_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV3_SIMD,POSE_DECV3_PE,0,WGT_DECV3_SIZE,BIAS_M0_DECV3_SIZE>
             (pw2_out, de3_out, decv3_w, decv3_bias, decv3_m0);
 
     stream<ap_int<POSE_PWCV4_OUTCH*POSE_OUT_BIT>> pw4_out("pw4_out");
-#pragma HLS STREAM variable=pw4_out depth=8 dim=1
+#pragma HLS RESOURCE variable=pw4_out core=FIFO_SRL
 
     PwConvLayerT<POSE_PWCV4_ROW,POSE_PWCV4_COL,POSE_PWCV4_INCH,POSE_IN_BIT,POSE_PWCV4_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV4_SIMD,POSE_PWCV4_PE,0,WGT_PWCV4_SIZE,BIAS_M0_PWCV4_SIZE>
             (de3_out, pw4_out, pwcv4_w, pwcv4_bias, pwcv4_m0);
 
     stream<ap_int<POSE_DECV5_OUTCH*POSE_OUT_BIT>> de5_out("de5_out");
-#pragma HLS STREAM variable=de5_out depth=8 dim=1
+#pragma HLS RESOURCE variable=de5_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV5_ROW,POSE_DECV5_COL,POSE_DECV5_INCH,POSE_IN_BIT,POSE_DECV5_INCH/POSE_DECV5_SIMD,POSE_DECV5_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV5_SIMD,POSE_DECV5_PE,0,WGT_DECV5_SIZE,BIAS_M0_DECV5_SIZE>
@@ -293,7 +293,7 @@ void PosenetDecv(
 
 
     stream<ap_int<POSE_PWCV6_OUTCH*POSE_OUT_BIT>> pw6_out("pw6_out");
-#pragma HLS STREAM variable=pw6_out depth=8 dim=1
+#pragma HLS RESOURCE variable=pw6_out core=FIFO_SRL
 
     PwConvLayerT<POSE_PWCV6_ROW,POSE_PWCV6_COL,POSE_PWCV6_INCH,POSE_IN_BIT,POSE_PWCV6_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV6_SIMD,POSE_PWCV6_PE,0,WGT_PWCV6_SIZE,BIAS_M0_PWCV6_SIZE>
