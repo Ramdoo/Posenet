@@ -22,7 +22,7 @@ void GenParamW(const char *path
             ap_int<SIMD*W_BIT> temp_wgt = 0;
             for (unsigned s = 0; s < SIMD; ++s) {
                 temp_wgt = temp_wgt << W_BIT;
-                temp_wgt |= ap_int<SIMD*W_BIT>(ap_int<W_BIT>(rand() % 2)) ;
+                temp_wgt |= ap_int<SIMD*W_BIT>(ap_int<W_BIT>(rand() % 127)) ;
             }
             cout << hex ;
             f << f.fill(',') <<  "\"" << temp_wgt << "\"";
@@ -44,7 +44,7 @@ void GenParamB(const char *path) {
     for (unsigned p = 0; p < PE; ++p) {
         f << "{";
         for (unsigned i = 0; i < SIZE; ++i) {
-            ap_int<BIAS_BIT> temp_wgt = ap_int<BIAS_BIT>(rand() % 3);
+            ap_int<BIAS_BIT> temp_wgt = ap_int<BIAS_BIT>(rand() % 255);
             cout << hex ;
             f << f.fill(',') <<  "\"" << temp_wgt << "\"";
         }

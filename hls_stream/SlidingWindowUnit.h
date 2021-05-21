@@ -29,8 +29,8 @@ void SWU(
     cout << "######################## SWU DEBUG BEGIN #######################" << endl;
 #endif
     const unsigned steps = (IN_COL - K) / S + 1;                // 需要滑动几次
-    const unsigned line_buffer_size = K * IN_COL * IN_CH_NUMS;  // 滑动窗口的size
-    ap_int<IN_CH*IN_BIT> line_buffer[4320] = {0};  //TODO:一个固定的最大值 3*48*30
+    const unsigned line_buffer_size = K * IN_COL;// * IN_CH_NUMS;  // 滑动窗口的size
+    ap_int<IN_CH*IN_BIT> line_buffer[288][10];  //TODO:一个固定的最大值 3*96 480/48
     ap_int<IN_CH*IN_BIT> tmp_in;
 
     ap_uint<1> initial_fill = 0;
@@ -52,7 +52,7 @@ void SWU(
         for (unsigned w = 0; w < IN_COL; ++w) {
 #pragma HLS LOOP_TRIPCOUNT min=6 max=6
 #pragma HLS PIPELINE II=1
-            unsigned line_buffer_pointer = pointer + w*IN_CH_NUMS;
+            unsigned line_buffer_pointer = pointer + w;
             if (line_buffer_pointer >= line_buffer_size) {
                 line_buffer_pointer = line_buffer_pointer - line_buffer_size;
             }
@@ -61,9 +61,9 @@ void SWU(
             cout << "tmp_in: ";
 #endif
             for (unsigned nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=30 max=30
+#pragma HLS LOOP_TRIPCOUNT min=10 max=10
                 tmp_in = in_fm.read();
-                line_buffer[line_buffer_pointer+nums] = tmp_in;
+                line_buffer[line_buffer_pointer][nums] = tmp_in;
 #if SWU_DEBUG
                 cout << hex << tmp_in << " ";
 #endif
@@ -74,7 +74,7 @@ void SWU(
         }
 
         stride +=1;
-        pointer += IN_COL*IN_CH_NUMS;
+        pointer += IN_COL;
         if (pointer >= line_buffer_size) {
             pointer = pointer - line_buffer_size;
             initial_fill = 1;
@@ -91,7 +91,7 @@ void SWU(
                 cout << "[";
                 for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
                     cout << /*setw(2+IN_CH*IN_BIT/4) <<*/ hex
-                         << line_buffer[k*IN_COL*IN_CH_NUMS + col*IN_CH_NUMS + nums] << " ";
+                         << line_buffer[k*IN_COL+ col][nums] << " ";
                 }
                 cout << "]";
             }
@@ -105,11 +105,12 @@ void SWU(
             unsigned s = 0;
             unsigned kx = 0;
             unsigned ky = 0;
+            unsigned ch_nums = 0;
 
-            for (unsigned i = 0; i < steps*(K*K); ++i) {
+            for (unsigned i = 0; i < steps*(K*K)*IN_CH_NUMS; ++i) {
 #pragma HLS LOOP_TRIPCOUNT min=54 max=54
 #pragma HLS PIPELINE II=1
-                unsigned read_address = pointer+ (s*S + ky * IN_COL + kx)*IN_CH_NUMS;
+                unsigned read_address = pointer+ (s*S + ky * IN_COL + kx);
                 if (read_address >= line_buffer_size) {
                     read_address = read_address - line_buffer_size;
                 }
@@ -117,18 +118,16 @@ void SWU(
                 cout << dec << "s: " << s << endl;
                 cout << dec << "kx: " << kx << endl;
                 cout << dec << "ky: " << ky << endl;
+                cout << dec << "ch_nums: " << ch_nums << endl;
                 cout << dec << "read_address before: " << ((pointer+ s*S*IN_CH_NUMS) + ky * IN_COL*IN_CH_NUMS + kx*IN_CH_NUMS) << endl;
                 cout << dec << "read_address after: " << read_address << endl;
                 cout << dec << "------tmp out--------" << endl;
 #endif
-                for (unsigned nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=30 max=30
-                    ap_int<IN_CH*IN_BIT> tmp_out = line_buffer[read_address+nums];
+                ap_int<IN_CH*IN_BIT> tmp_out = line_buffer[read_address][ch_nums];
 #if SWU_DEBUG
-                    cout << setw(2+IN_BIT*IN_CH/4) << hex << tmp_out << " ";
+                cout << /*setw(2+IN_BIT*IN_CH/4) <<*/ hex << tmp_out << ", ";
 #endif
-                    out_fm.write(tmp_out);
-                }
+                out_fm.write(tmp_out);
 #if SWU_DEBUG
                 cout << endl;
                 cout << "-----------------" << endl;
@@ -138,10 +137,15 @@ void SWU(
                     kx = 0;
                     if (ky == K - 1) {
                         ky = 0;
-                        if (s == steps-1) {
-                            s = 0;
+                        if (ch_nums == IN_CH_NUMS -1) {
+                            ch_nums = 0;
+                            if (s == steps-1) {
+                                s = 0;
+                            } else {
+                                s++;
+                            }
                         } else {
-                            s++;
+                            ch_nums++;
                         }
                     } else {
                         ky++;
@@ -361,7 +365,7 @@ void SWUT(
 #endif
             for (ap_uint<16> nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS UNROLL
-                line_buffer[line_buffer_pointer][nums] = tmp_in((nums<<(LOG_IN_BIT+LOG_SIMD))+(IN_BIT*SIMD-1), nums<<(LOG_IN_BIT+LOG_SIMD));
+                line_buffer[line_buffer_pointer][nums] = tmp_in((nums<<(LOG_IN_BIT+LOG_SIMD))+(IN_BIT*SIMD-1), nums<<(LOG_IN_BIT+LOG_SIMD));//TODO:
 #if SWU_DEBUG
                 cout << hex << tmp_in((nums<<(LOG_IN_BIT+LOG_SIMD))+(IN_BIT*SIMD-1), (nums<<(LOG_IN_BIT+LOG_SIMD))) << ", ";
 

@@ -291,20 +291,22 @@ template<
 >
 void DwcvMatrixVectorActUnit(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
-        stream<ap_int<480*OUT_BIT>> &out_fm,
+        stream<ap_int<PE*OUT_BIT>> &out_fm,
         stream<ap_int<SIMD*W_BIT>> &weights,
-        stream<ap_int<480*BIAS_BIT>> &bias,
-        stream<ap_uint<480*M0_BIT>> &m0,
+        stream<ap_int<PE*BIAS_BIT>> &bias,
+        stream<ap_uint<PE*M0_BIT>> &m0,
         const unsigned MAT_ROW, // K*K*CH
         const unsigned MAT_COL, // 1
         const unsigned IN_CH_NUMS,
         const unsigned VECT_NUMS
 ) {
 
-    const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
+    //const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
+    const unsigned INPUT_FOLD  = 9;
     //const unsigned OUTPUT_FOLE = MAT_COL/PE;
-    const unsigned OUTPUT_FOLE = 1;
-    const unsigned total_reps = INPUT_FOLD * OUTPUT_FOLE * VECT_NUMS;
+    const unsigned OUTPUT_FOLE = IN_CH_NUMS;
+    //const unsigned total_reps = INPUT_FOLD * OUTPUT_FOLE * VECT_NUMS;
+    const unsigned total_reps = IN_CH_NUMS * INPUT_FOLD * VECT_NUMS;
 #if MVAU_DEBUG
     const unsigned CH = SIMD*IN_CH_NUMS;
     cout << dec << "INPUT_FOLD : " << INPUT_FOLD << endl;
@@ -313,10 +315,9 @@ void DwcvMatrixVectorActUnit(
     cout << dec << "CH : " << CH << endl;
 #endif
     unsigned in_fold_cnt  = 0;
-    unsigned ch_nums      = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
-    ap_int<MUL_BIT> acc[480/*SIMD*IN_CH_NUMS*/];
+    ap_int<MUL_BIT> acc[SIMD];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
@@ -324,7 +325,7 @@ void DwcvMatrixVectorActUnit(
 #pragma HLS PIPELINE II=1
         temp_in = in_fm.read();
         if (in_fold_cnt == 0) {
-            for (unsigned p = 0; p < 480/*SIMD*IN_CH_NUMS*/; ++p) {
+            for (unsigned p = 0; p < SIMD; ++p) {
 #pragma HLS UNROLL
                 acc[p] = 0;
             }
@@ -338,59 +339,51 @@ void DwcvMatrixVectorActUnit(
         for (ap_uint<8> p = 0; p < SIMD; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-            unsigned index = ch_nums*SIMD + p;
 #if MVAU_DEBUG
-            cout << hex << "before acc[" << index << "]: " << acc[p];
+            cout << hex << "before acc[" << p << "]: " << acc[p];
 #endif
             ap_int<W_BIT> temp_wgt = wgt_buf((p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
             ap_int<IN_BIT> temp = temp_in((p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
             ap_int<W_BIT+IN_BIT> mul;
             mul = temp_wgt * temp;
-            acc[index] += mul;
+            acc[p] += mul;
 #if MVAU_DEBUG
             cout << hex << ", temp_wgt: " << temp_wgt  << ", temp: " << temp;
-            cout << hex << ", acc[" << index << "]: " << acc[p] << endl;
+            cout << hex << ", acc[" << p << "]: " << acc[p] << endl;
 #endif
         }
 
         ++in_fold_cnt;
-        ++ch_nums;
-        if (ch_nums == IN_CH_NUMS) {
-            ch_nums = 0;
-        }
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            ap_int<480*OUT_BIT>  out_buf;
-            ap_int<480*BIAS_BIT> bias_buf = bias.read();
-            ap_int<480*M0_BIT>   m0_buf   = m0.read();
-            for (ap_uint<16> nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=10 max=30
-#pragma HLS PIPELINE II=1
-                ap_int<PE*OUT_BIT>  out_pe_buf;
-                ap_int<PE*BIAS_BIT> bias_pe_buf = bias_buf((nums<<(LOG_PE+LOG_BIAS_BIT))+(PE*BIAS_BIT-1), nums<<(LOG_PE+LOG_BIAS_BIT));
-                ap_uint<PE*M0_BIT>  m0_pe_buf   = m0_buf(  (nums<<(LOG_PE+LOG_M0_BIT))  +(PE*M0_BIT-1),   nums<<(LOG_PE+LOG_M0_BIT));
-                for (ap_uint<8> p = 0; p < PE; ++p) {
+            ap_int<PE*OUT_BIT>  out_buf;
+            ap_int<PE*BIAS_BIT> bias_buf = bias.read();
+            ap_int<PE*M0_BIT>   m0_buf   = m0.read();
+            for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-                    ap_int<BIAS_BIT> tmp_bias = bias_pe_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT));
-                    ap_uint<M0_BIT>  tmp_m0   = m0_pe_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT));
-                    out_pe_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(
-                                                                                acc[nums*PE+p], tmp_bias, tmp_m0);
-                }
-                out_buf((nums<<(LOG_PE+LOG_OUT_BIT))+(PE*OUT_BIT-1), (nums<<(LOG_PE+LOG_OUT_BIT)));
-#if 0//MVAU_DEBUG
-                cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
-                for (unsigned p = 0; p < PE; ++p) {
-                    cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
-                         << ", acc["<< nums*PE+p << "]: " << acc[nums*PE+p] << ", bias: "
-                         << bias[p][nums] << ", m0: " << m0[p][nums] << endl;
-                }
-                cout << endl;
+                ap_int<BIAS_BIT> tmp_bias = bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT));
+                ap_uint<M0_BIT>  tmp_m0   = m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT));
+                out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) =
+                        ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], tmp_bias, tmp_m0);
+            }
+//            out_buf((nums<<(LOG_PE+LOG_OUT_BIT))+(PE*OUT_BIT-1), (nums<<(LOG_PE+LOG_OUT_BIT)));
+#if MVAU_DEBUG
+            cout << "$$$$$$$$$$$$$$n" << endl;
+            cout << "bias_buf: " << bias_buf << endl;
+            cout << "m0_buf: " << m0_buf << endl;
+            cout << "out_buf: " << endl;
+            for (unsigned p = 0; p < PE; ++p) {
+                cout << hex << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
+                     << ", acc["<< p << "]: " << acc[p]
+                     << ", bias: " << bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT))
+                     <<", m0: " << m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT)) << endl;
+            }
+            cout << endl;
 #endif
 #if MVAU_DEBUG
-                cout << hex << "out_but: " << out_buf << endl;
+            cout << hex << "out_but: " << out_buf << endl;
 #endif
-            }
             out_fm.write(out_buf);
         }
     }

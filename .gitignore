@@ -106,3 +106,6 @@ hls_stream/.idea/inspectionProfiles/Project_Default.xml
 hls_stream/Test/conv0mvau_golden.txt
 hls_stream/Test/testb.txt
 hls_stream/Test/testw.txt
+hls_stream/Test/conv0mvau.txt
+hls_stream/Test/conv0pad.txt
+hls_stream/Test/conv0swu.txt

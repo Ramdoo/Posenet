@@ -28,8 +28,8 @@ void DwConvLayerAlpha(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         stream<ap_int<SIMD*W_BIT>> &weights,
-        stream<ap_int<480*BIAS_BIT>> &bias,
-        stream<ap_uint<480*M0_BIT>> &m0,
+        stream<ap_int<PE*BIAS_BIT>> &bias,
+        stream<ap_uint<PE*M0_BIT>> &m0,
         const unsigned IN_ROW,
         const unsigned IN_COL,
         const unsigned S,
@@ -43,19 +43,21 @@ void DwConvLayerAlpha(
     const unsigned OUT_COL = IN_COL;
 
     stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
+#pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
     Padding<IN_CH, IN_BIT, 1>(in, padding_out, IN_CH_NUMS, IN_ROW, IN_COL);
 
     stream<ap_int<IN_CH*IN_BIT>> swu_out("swu_out");
+#pragma HLS RESOURCE variable=swu_out core=FIFO_SRL
     SWU<K,IN_BIT,IN_CH>(padding_out, swu_out, IN_CH_NUMS, INTER_ROW, INTER_COL, S);
 
-    stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
-    StreamingDataWidthConverter_Batch<IN_CH*IN_BIT, SIMD*IN_BIT>(swu_out, adj_out, K*K*INTER_ROW*INTER_COL*IN_CH_NUMS, IN_CH_NUMS);
+    //stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
+    //StreamingDataWidthConverter_Batch<IN_CH*IN_BIT, SIMD*IN_BIT>(swu_out, adj_out, K*K*INTER_ROW*INTER_COL*IN_CH_NUMS, IN_CH_NUMS);
 
-    stream<ap_int<480*IN_BIT>> mvau_out("mvau_out");
+    //stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
     DwcvMatrixVectorActUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE>
-            (adj_out, mvau_out, weights, bias, m0, IN_CH_NUMS*IN_CH*K*K, OUT_CH, IN_CH_NUMS, OUT_ROW*OUT_COL);
+            (swu_out, out, weights, bias, m0, IN_CH_NUMS*IN_CH*K*K, OUT_CH, IN_CH_NUMS, OUT_ROW*OUT_COL);
 
-    StreamingDataWidthConverter_Batch<480*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*IN_CH_NUMS, IN_CH_NUMS*IN_CH/OUT_CH);
+    //StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*IN_CH_NUMS, IN_CH_NUMS*IN_CH/OUT_CH);
 }
 
 
