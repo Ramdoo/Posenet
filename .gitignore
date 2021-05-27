@@ -109,3 +109,17 @@ hls_stream/Test/testw.txt
 hls_stream/Test/conv0mvau.txt
 hls_stream/Test/conv0pad.txt
 hls_stream/Test/conv0swu.txt
+test/Test/testw.txt
+test/Test/testb.txt
+test/Test/conv0swu.txt
+test/Test/conv0pad.txt
+test/Test/conv0mvau.txt
+hls_stream/Test/hconv0in.txt
+hls_stream/Test/testb1.txt
+hls_stream/Test/testb2.txt
+hls_stream/Test/testw1.txt
+hls_stream/Test/testw2.txt
+hls_stream/cmake-build-debug/CMakeFiles/Progress/1
+hls_stream/cmake-build-debug/CMakeFiles/Progress/2
+hls_stream/cmake-build-debug/CMakeFiles/Progress/count.txt
+hls_stream/cmake-build-debug/CMakeFiles/Progress/3

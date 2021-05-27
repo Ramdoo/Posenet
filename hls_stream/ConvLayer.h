@@ -1,3 +1,4 @@
+#pragma once
 #include <ap_int.h>
 #include <hls_stream.h>
 #include "Padding.h"
@@ -39,8 +40,8 @@ void DwConvLayerAlpha(
     unsigned INTER_ROW = IN_ROW + 2;
     unsigned INTER_COL = IN_COL + 2;
 
-    const unsigned OUT_ROW = IN_ROW;
-    const unsigned OUT_COL = IN_COL;
+    const unsigned OUT_ROW = (INTER_ROW-K)/S+1;
+    const unsigned OUT_COL = (INTER_COL-K)/S+1;
 
     stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
 #pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
@@ -156,6 +157,62 @@ void PwConvAddLayer(
 }
 
 
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+template<
+        unsigned IN_ROW,
+        unsigned IN_COL,
+        unsigned IN_CH,
+        unsigned IN_BIT,
+        unsigned IN_CH_NUMS,
+
+        unsigned OUT_CH,
+        unsigned OUT_BIT,
+
+        unsigned W_BIT,
+        unsigned MUL_BIT,
+        unsigned BIAS_BIT,
+        unsigned M0_BIT,
+
+        unsigned K,
+        unsigned SIMD,
+        unsigned LOG2_SIMD,
+        unsigned PE,
+        unsigned RSHIFT,           //TODO:
+        unsigned WGT_ARRAYSIZE,    //TODO:
+        unsigned BIAS_M0_ARRAYSIZE //TODO:
+>
+void DwConvLayerT(
+        stream<ap_int<IN_CH*IN_BIT>> &in,
+        stream<ap_int<OUT_CH*OUT_BIT>> &out,
+        const ap_int<SIMD*W_BIT> weights[WGT_ARRAYSIZE],
+        const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
+        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
+) {
+#pragma HLS DATAFLOW
+
+    const unsigned OUT_ROW = IN_ROW;
+    const unsigned OUT_COL = IN_COL;
+
+    stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
+#pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
+    PaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT, 1>(in, padding_out);
+    const unsigned INTER_ROW = IN_ROW + 2;
+    const unsigned INTER_COL = IN_COL + 2;
+
+    //stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
+    //StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, INTER_ROW*INTER_COL>(padding_out, adj_out);
+
+    stream<ap_int<SIMD*IN_BIT>> swu_out("swu_out");
+    SWUT<K,INTER_ROW, INTER_COL,IN_BIT,IN_CH,IN_CH/SIMD,SIMD,LOG2_SIMD,1>(padding_out, swu_out);
+
+    stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
+    DwcvMatrixVectorActUnitT<IN_CH_NUMS*SIMD*K*K, OUT_CH, IN_BIT, IN_CH_NUMS, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
+            RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE, OUT_ROW*OUT_COL>
+            (swu_out, mvau_out, weights, bias, m0);
+
+    StreamingDataWidthConverter_BatchT<PE*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*OUT_CH/PE>(mvau_out, out);
+}
+
 
 //函数名后面加T, 表示参数都放在模板Template中， 固定的参数
 template<
@@ -175,6 +232,7 @@ template<
 
         unsigned K,
         unsigned SIMD,
+        unsigned LOG2_SIMD,
         unsigned PE,
         unsigned RSHIFT,           //TODO:
         unsigned WGT_ARRAYSIZE,    //TODO:
@@ -205,7 +263,7 @@ void DeConvLayerT(
     //StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, INTER_ROW*INTER_COL>(padding_out, adj_out);
 
     stream<ap_int<SIMD*IN_BIT>> swu_out("swu_out");
-    SWUT<K,INTER_ROW, INTER_COL,IN_BIT,IN_CH,IN_CH/SIMD,SIMD,1>(padding_out, swu_out);
+    SWUT<K,INTER_ROW, INTER_COL,IN_BIT,IN_CH,IN_CH/SIMD,SIMD,LOG2_SIMD,1>(padding_out, swu_out);
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
     DwcvMatrixVectorActUnitT<IN_CH_NUMS*SIMD*K*K, OUT_CH, IN_BIT, IN_CH_NUMS, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
@@ -260,4 +318,57 @@ void PwConvLayerT(
 }
 
 
+template<
+        unsigned IN_ROW,
+        unsigned IN_COL,
+        unsigned IN_CH,
+        unsigned IN_BIT,
+
+        unsigned OUT_CH,
+        unsigned OUT_BIT,
+
+        unsigned W_BIT,
+        unsigned MUL_BIT,
+        unsigned BIAS_BIT,
+        unsigned M0_BIT,
+
+        unsigned K,
+        unsigned S,
+        unsigned SIMD,
+        unsigned PE,
+        unsigned RSHIFT,           //TODO:
+        unsigned WGT_ARRAYSIZE,    //TODO:
+        unsigned BIAS_M0_ARRAYSIZE //TODO:
+>
+void ConvLayerT(
+        stream<ap_int<IN_CH*IN_BIT>> &in,
+        stream<ap_int<OUT_CH*OUT_BIT>> &out,
+        const ap_int<SIMD*W_BIT> weights[PE][WGT_ARRAYSIZE],
+        const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
+        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
+) {
+#pragma HLS DATAFLOW
+
+
+    stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
+#pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
+    PaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT, 1>(in, padding_out);
+    const unsigned INTER_ROW = IN_ROW + 2;
+    const unsigned INTER_COL = IN_COL + 2;
+    const unsigned OUT_ROW = (INTER_ROW - K) / S + 1;
+    const unsigned OUT_COL = (INTER_COL - K) / S + 1;
+
+    stream<ap_int<IN_CH*IN_BIT>> swu_out("swu_out");
+    SWUCvT<K,INTER_ROW, INTER_COL,IN_BIT,IN_CH,S>(padding_out, swu_out);
+
+    stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
+    StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, K*K*OUT_ROW*OUT_COL>(swu_out, adj_out);
+
+    stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
+    MatrixVectorActUnitT<IN_CH*K*K, OUT_CH, IN_BIT,  OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
+            RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE, OUT_ROW*OUT_COL>
+            (adj_out, mvau_out, weights, bias, m0);
+
+    StreamingDataWidthConverter_BatchT<PE*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*OUT_CH/PE>(mvau_out, out);
+}
 

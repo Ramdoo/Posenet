@@ -2,7 +2,6 @@
 #include <hls_stream.h>
 
 #include "ConvLayer.h"
-#include "Load.h"
 #include "Posenet.h"
 #include "Params.h"
 #include <assert.h>
@@ -16,9 +15,9 @@ using namespace hls;
 //480channels, 12 cols
 void PosenetBlockAlpha(
         stream<infm_T> &in,       stream<outfm_T> &out,      stream<addfm_T> &add_fm,
-        stream<wgt_pe_T> &wgt1,   stream<wgt_T> &wgt2,       stream<wgt_pe_T> &wgt3,
-        stream<bias_pe_T> &bias1, stream<bias_pe_T> &bias2, stream<bias_pe_T> &bias3,
-        stream<m0_pe_T> &m0_1,    stream<m0_pe_T> &m0_2,    stream<m0_pe_T> &m0_3,
+        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,       stream<wgt3_pe_T> &wgt3,
+        stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
+        stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
         const unsigned  INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD
@@ -28,16 +27,16 @@ void PosenetBlockAlpha(
     stream<innerfm_T> pw1_out("pw1_out");
 #pragma HLS STREAM variable=pw1_out depth=128 dim=1
 
-    PwConvLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_ALPHA1,BIAS_M0_SIZE_ALPHA>
+    PwConvLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD1,POSE_PE1,0,WGT_PW_SIZE_ALPHA1,BIAS_M0_SIZE_ALPHA>
             (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, INCH_NUMS1, OUTCH_NUMS1);
 
     stream<innerfm_T> dw2_out("dw2_out");
 #pragma HLS STREAM variable=dw2_out depth=128 dim=1
 
-    DwConvLayerAlpha<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD,POSE_PE,0,WGT_DW_SIZE_ALPHA2,BIAS_M0_SIZE_ALPHA>
+    DwConvLayerAlpha<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD2,POSE_PE2,0,WGT_DW_SIZE_ALPHA2,BIAS_M0_SIZE_ALPHA>
             (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2);
 
-    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_ALPHA3,BIAS_M0_SIZE_ALPHA>
+    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,0,WGT_PW_SIZE_ALPHA3,BIAS_M0_SIZE_ALPHA>
             (dw2_out, out, add_fm, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD);
 
 }
@@ -45,9 +44,9 @@ void PosenetBlockAlpha(
 
 void PosenetAlpha(
         stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
-        stream<wgt_pe_T> &wgt1, stream<wgt_T> &wgt2, stream<wgt_pe_T> &wgt3,
-        stream<bias_pe_T> &bias1, stream<bias_pe_T> &bias2, stream<bias_pe_T> &bias3,
-        stream<m0_pe_T> &m0_1, stream<m0_pe_T> &m0_2, stream<m0_pe_T> &m0_3,
+        stream<wgt1_pe_T> &wgt1, stream<wgt2_T> &wgt2, stream<wgt3_pe_T> &wgt3,
+        stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
+        stream<m0_1pe_T> &m0_1, stream<m0_2pe_T> &m0_2, stream<m0_3pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
         const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD,
@@ -55,21 +54,9 @@ void PosenetAlpha(
 ) {
 #pragma HLS stream variable=add_fm depth=1024 dim=1
 
-	assert(ROW1==16 || ROW1==8);
-    assert(ROW2==16 || ROW2==8);
-    assert(ROW3==16 || ROW3==8);
-
-    assert(COL1==12 || COL1==6);
-    assert(COL2==12 || COL2==6);
-    assert(COL3==12 || COL3==6);
-
-    assert(INCH_NUMS1 <= 5);
-    assert(OUTCH_NUMS1 <= 30);
-    assert(CH_NUMS2 <= 30);
-    assert(INCH_NUMS3 <= 30);
-    assert(OUTCH_NUMS3 <= 5);
-
-    assert(STRIDE==2 || STRIDE==1);
+	assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0)
+	        || (ROW1==128 && ROW2==64 && ROW3==64 && COL1==96 && COL2==48 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1)
+	        );
 
     PosenetBlockAlpha(in, out, add_fm,
                       wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
@@ -108,10 +95,8 @@ void PosenetBlockBeta(
             (dw2_out, out, add_fm, wgt3, bias3, m0_3, ROW3, COL3, CH_NUMS3, IS_ADD);
 
 }
-#endif
 
 
-#if 0
 void PosenetBeta(
         stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
         wgt_T* wgt1, wgt_T* wgt2, wgt_T* wgt3,
@@ -231,7 +216,7 @@ void PosenetBeta(
 //鍚庨潰鍏眰鍋氭垚鐙珛鐨勫姞閫熷櫒,鍒嗗埆锟�?? pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
 //鍏朵腑 pwcv 锟�?? SIMD鍜孭E閮借锟�??4锟�?? decv鐨凷IMD璁炬垚16
 void PosenetDecv(
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_PWCV7_OUTCH*POSE_OUT_BIT>> &out
+        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * POSE_OUT_BIT>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -275,7 +260,7 @@ void PosenetDecv(
 #pragma HLS RESOURCE variable=de1_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV1_ROW,POSE_DECV1_COL,POSE_DECV1_INCH,POSE_IN_BIT,POSE_DECV1_INCH/POSE_DECV1_SIMD,POSE_DECV1_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV1_SIMD,POSE_DECV1_PE,0,WGT_DECV1_SIZE,BIAS_M0_DECV1_SIZE>
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV1_SIMD,POSE_DECV1_LOG2_SIMD,POSE_DECV1_PE,0,WGT_DECV1_SIZE,BIAS_M0_DECV1_SIZE>
             (pw0_out, de1_out, decv1_w, decv1_bias, decv1_m0);
 
 
@@ -291,7 +276,7 @@ void PosenetDecv(
 #pragma HLS RESOURCE variable=de3_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV3_ROW,POSE_DECV3_COL,POSE_DECV3_INCH,POSE_IN_BIT,POSE_DECV3_INCH/POSE_DECV3_SIMD,POSE_DECV3_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV3_SIMD,POSE_DECV3_PE,0,WGT_DECV3_SIZE,BIAS_M0_DECV3_SIZE>
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV3_SIMD,POSE_DECV3_LOG2_SIMD,POSE_DECV3_PE,0,WGT_DECV3_SIZE,BIAS_M0_DECV3_SIZE>
             (pw2_out, de3_out, decv3_w, decv3_bias, decv3_m0);
 
     stream<ap_int<POSE_PWCV4_OUTCH*POSE_OUT_BIT>> pw4_out("pw4_out");
@@ -305,7 +290,7 @@ void PosenetDecv(
 #pragma HLS RESOURCE variable=de5_out core=FIFO_SRL
 
     DeConvLayerT<POSE_DECV5_ROW,POSE_DECV5_COL,POSE_DECV5_INCH,POSE_IN_BIT,POSE_DECV5_INCH/POSE_DECV5_SIMD,POSE_DECV5_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV5_SIMD,POSE_DECV5_PE,0,WGT_DECV5_SIZE,BIAS_M0_DECV5_SIZE>
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_DECV5_SIMD,POSE_DECV5_LOG2_SIMD,POSE_DECV5_PE,0,WGT_DECV5_SIZE,BIAS_M0_DECV5_SIZE>
             (pw4_out, de5_out, decv5_w, decv5_bias, decv5_m0);
 
 
@@ -316,17 +301,56 @@ void PosenetDecv(
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV6_SIMD,POSE_PWCV6_PE,0,WGT_PWCV6_SIZE,BIAS_M0_PWCV6_SIZE>
             (de5_out, pw6_out, pwcv6_w, pwcv6_bias, pwcv6_m0);
 
-    PwConvLayerT<POSE_PWCV7_ROW,POSE_PWCV7_COL,POSE_PWCV7_INCH,POSE_IN_BIT,POSE_PWCV7_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV7_SIMD,POSE_PWCV7_PE,0,WGT_PWCV7_SIZE,BIAS_M0_PWCV7_SIZE>
+    //TODO:
+    ConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
+}
+
+
+void PosenetHead(
+        stream<ap_int<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_HCV2_OUTCH * POSE_OUT_BIT>> &out
+) {
+#pragma HLS DATAFLOW
+
+#pragma HLS ARRAY_PARTITION variable=hcv0_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv1_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv1_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv2_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_m0   complete dim=1
+
+    stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
+#pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
+
+    //TODO:
+    ConvLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,0, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
+            (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0);
+
+    stream<ap_int<POSE_HCV1_OUTCH*POSE_OUT_BIT>> cv1_out("cv1_out");
+#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
+
+    DwConvLayerT<POSE_HCV1_ROW,POSE_HCV1_COL,POSE_HCV1_INCH,POSE_IN_BIT,POSE_HCV1_INCH/POSE_HCV1_SIMD,POSE_HCV1_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,0,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
+            (cv0_out, cv1_out, hcv1_w, hcv1_bias, hcv1_m0);
+
+
+    PwConvLayerT<POSE_HCV2_ROW,POSE_HCV2_COL,POSE_HCV2_INCH,POSE_IN_BIT,POSE_HCV2_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,0,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
+            (cv1_out, out, hcv2_w, hcv2_bias, hcv2_m0);
 }
 
 
 void Top(
         stream<infm_T> &in,             stream<outfm_T> &out,            stream<addfm_T> &add_fm,
-        stream<wgt_pe_T>  &wgt1_alpha,  stream<wgt_T> &wgt2_alpha,       stream<wgt_pe_T> &wgt3_alpha,
-        stream<bias_pe_T> &bias1_alpha, stream<bias_pe_T> &bias2_alpha, stream<bias_pe_T> &bias3_alpha,
-        stream<m0_pe_T>   &m0_1_alpha,  stream<m0_pe_T> &m0_2_alpha,    stream<m0_pe_T> &m0_3_alpha,
+        stream<wgt1_pe_T>  &wgt1_alpha,  stream<wgt2_T> &wgt2_alpha,       stream<wgt3_pe_T> &wgt3_alpha,
+        stream<bias1_pe_T> &bias1_alpha, stream<bias2_pe_T> &bias2_alpha, stream<bias3_pe_T> &bias3_alpha,
+        stream<m0_1pe_T>   &m0_1_alpha,  stream<m0_2pe_T> &m0_2_alpha,    stream<m0_3pe_T> &m0_3_alpha,
         const unsigned ROW1_ALPHA, const unsigned ROW2_ALPHA, const unsigned ROW3_ALPHA, const unsigned COL1_ALPHA, const unsigned COL2_ALPHA, const unsigned COL3_ALPHA,
         const unsigned INCH_NUMS1_ALPHA, const unsigned OUTCH_NUMS1_ALPHA, const unsigned CH_NUMS2_ALPHA, const unsigned  INCH_NUMS3_ALPHA, const unsigned OUTCH_NUMS3_ALPHA, const unsigned STRIDE_ALPHA, const unsigned IS_ADD_ALPHA, const unsigned PingPongAlpha,
 #if 0
@@ -337,7 +361,7 @@ void Top(
         const unsigned ROW1_BETA, const unsigned ROW2_BETA, const unsigned ROW3_BETA, const unsigned COL1_BETA, const unsigned COL2_BETA, const unsigned COL3_BETA,
         const unsigned CH_NUMS1_BETA, const unsigned CH_NUMS2_BETA, const unsigned  CH_NUMS3_BETA, const unsigned STRIDE_BETA, const unsigned IS_ADD_BETA, const unsigned IS_DECONV_BETA, const unsigned PingPongBeta,
 #endif
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &dein, stream<ap_int<POSE_PWCV7_OUTCH*POSE_OUT_BIT>> &deout
+        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &dein, stream<ap_int<POSE_CV7_OUTCH * POSE_OUT_BIT>> &deout
         ) {
 
 
