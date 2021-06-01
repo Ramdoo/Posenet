@@ -30,7 +30,10 @@ void SWU(
 #endif
     const unsigned steps = (IN_COL - K) / S + 1;                // 需要滑动几次
     const unsigned line_buffer_size = K * IN_COL;// * IN_CH_NUMS;  // 滑动窗口的size
-    ap_int<IN_CH*IN_BIT> line_buffer[288][30];  //TODO:一个固定的最大值 3*96 480/48
+#if SWU_DEBUG
+    cout << dec << "line_buffer_size: " << line_buffer_size << endl;
+#endif
+    ap_int<IN_CH*IN_BIT> line_buffer[294][30];  //TODO:一个固定的最大值 3*96 480/48
     ap_int<IN_CH*IN_BIT> tmp_in;
 
     ap_uint<1> initial_fill = 0;
@@ -38,7 +41,7 @@ void SWU(
     unsigned pointer = 0;
     unsigned h = 0;
     for (unsigned rep = 0; rep < IN_ROW; rep++) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
+#pragma HLS LOOP_TRIPCOUNT min=10 max=10
         if (h == IN_ROW) {
             initial_fill = 0;
             stride = 0;
@@ -50,7 +53,7 @@ void SWU(
         cout << dec << "width pointer: " << pointer << endl;
 #endif
         for (unsigned w = 0; w < IN_COL; ++w) {
-#pragma HLS LOOP_TRIPCOUNT min=6 max=6
+#pragma HLS LOOP_TRIPCOUNT min=8 max=8
 #pragma HLS PIPELINE II=1
             unsigned line_buffer_pointer = pointer + w;
             if (line_buffer_pointer >= line_buffer_size) {
@@ -61,7 +64,7 @@ void SWU(
             cout << "tmp_in: ";
 #endif
             for (unsigned nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=10 max=10
+#pragma HLS LOOP_TRIPCOUNT min=30 max=30
                 tmp_in = in_fm.read();
                 line_buffer[line_buffer_pointer][nums] = tmp_in;
 #if SWU_DEBUG
@@ -108,7 +111,7 @@ void SWU(
             unsigned ch_nums = 0;
 
             for (unsigned i = 0; i < steps*(K*K)*IN_CH_NUMS; ++i) {
-#pragma HLS LOOP_TRIPCOUNT min=54 max=54
+#pragma HLS LOOP_TRIPCOUNT min=1620 max=1620
 #pragma HLS PIPELINE II=1
                 unsigned read_address = pointer+ (s*S + ky * IN_COL + kx);
                 if (read_address >= line_buffer_size) {

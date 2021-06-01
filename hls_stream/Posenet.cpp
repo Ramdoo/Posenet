@@ -14,54 +14,135 @@ using namespace hls;
 
 //480channels, 12 cols
 void PosenetBlockAlpha(
-        stream<infm_T> &in,       stream<outfm_T> &out,      stream<addfm_T> &add_fm,
-        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,       stream<wgt3_pe_T> &wgt3,
+        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
         stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
         stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
-        const unsigned  INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD
+        const unsigned  INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE,
+        const unsigned IS_ADD, const unsigned NEXT_ADD
 ) {
 #pragma HLS DATAFLOW
 
     stream<innerfm_T> pw1_out("pw1_out");
 #pragma HLS STREAM variable=pw1_out depth=128 dim=1
 
-    PwConvLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD1,POSE_PE1,0,WGT_PW_SIZE_ALPHA1,BIAS_M0_SIZE_ALPHA>
+    PwConvActLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD1,POSE_PE1,16,WGT_PW_SIZE_ALPHA1,BIAS_M0_SIZE_ALPHA>
             (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, INCH_NUMS1, OUTCH_NUMS1);
+#if 0
+    cout << dec << "pw1_out size: " << pw1_out.size() << endl;
+    ofstream fpblk1cv1("..\\Test\\blk1cv1.txt", ios::out);
+    if (!fpblk1cv1)
+        cout << "no such file" << endl;
+    for (int h = 0; h < ROW1; ++h) {
+        for (int w = 0; w < COL1 ; ++w) {
+            for (int nums = 0; nums < 3; nums++) {
+                ap_int<POSE_OUT_CH * POSE_IN_BIT> temp = pw1_out.read();
+                for (int ch = 0; ch < POSE_OUT_CH; ++ch) {
+                    cout << dec;
+                    fpblk1cv1 << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+                }
+            }
+            fpblk1cv1 << endl;
+        }
+    }
+    fpblk1cv1.close();
+#endif
 
     stream<innerfm_T> dw2_out("dw2_out");
 #pragma HLS STREAM variable=dw2_out depth=128 dim=1
 
-    DwConvLayerAlpha<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD2,POSE_PE2,0,WGT_DW_SIZE_ALPHA2,BIAS_M0_SIZE_ALPHA>
+    DwConvActLayerAlpha<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD2,POSE_PE2,16,WGT_DW_SIZE_ALPHA2,BIAS_M0_SIZE_ALPHA>
             (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2);
+#if 0
+    cout << dec << "dw2_out size: " << dw2_out.size() << endl;
+    ofstream fpblk1cv2("..\\Test\\blk1cv2.txt", ios::out);
+    if (!fpblk1cv2)
+        cout << "no such file" << endl;
+    for (int h = 0; h < ROW3; ++h) {
+        for (int w = 0; w < COL3 ; ++w) {
+            for (int nums = 0; nums < 3; nums++) {
+                ap_int<POSE_OUT_CH * POSE_IN_BIT> temp = dw2_out.read();
+                for (int ch = 0; ch < POSE_OUT_CH; ++ch) {
+                    cout << dec;
+                    fpblk1cv2 << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+                }
+            }
+            fpblk1cv2 << endl;
+        }
+    }
+    fpblk1cv2.close();
+#endif
 
-    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,0,WGT_PW_SIZE_ALPHA3,BIAS_M0_SIZE_ALPHA>
-            (dw2_out, out, add_fm, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD);
+    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16,WGT_PW_SIZE_ALPHA3,BIAS_M0_SIZE_ALPHA>
+            (dw2_out, out, add_in, add_out, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD, NEXT_ADD);
+#if 0
+    cout << dec << "out size: " << out.size() << endl;
+    ofstream fpblk1cv3("..\\Test\\blk1cv3.txt", ios::out);
+    if (!fpblk1cv3)
+        cout << "no such file" << endl;
+    for (int h = 0; h < ROW3; ++h) {
+        for (int w = 0; w < COL3 ; ++w) {
+            for (int nums = 0; nums < 1; nums++) {
+                ap_int<POSE_OUT_CH * POSE_IN_BIT> temp = out.read();
+                for (int ch = 0; ch < POSE_OUT_CH; ++ch) {
+                    cout << dec;
+                    fpblk1cv3 << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+                }
+            }
+            fpblk1cv3 << endl;
+        }
+    }
+    fpblk1cv3.close();
+#endif
+#if 0
+    cout << dec << "add_out size: " << add_out.size() << endl;
+    ofstream fpblk1cv3addout("..\\Test\\blk1cv3addout.txt", ios::out);
+    if (!fpblk1cv3addout)
+        cout << "no such file" << endl;
+    for (int h = 0; h < ROW3; ++h) {
+        for (int w = 0; w < COL3 ; ++w) {
+            for (int nums = 0; nums < 1; nums++) {
+                ap_int<POSE_OUT_CH * POSE_IN_BIT> temp = add_out.read();
+                for (int ch = 0; ch < POSE_OUT_CH; ++ch) {
+                    cout << dec;
+                    fpblk1cv3addout << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+                }
+            }
+            fpblk1cv3addout << endl;
+        }
+    }
+    fpblk1cv3addout.close();
+#endif
 
 }
 
 
 void PosenetAlpha(
-        stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
-        stream<wgt1_pe_T> &wgt1, stream<wgt2_T> &wgt2, stream<wgt3_pe_T> &wgt3,
+        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
         stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
-        stream<m0_1pe_T> &m0_1, stream<m0_2pe_T> &m0_2, stream<m0_3pe_T> &m0_3,
+        stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
-        const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD,
-        const unsigned PINGPONG
+        const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE,
+        const unsigned IS_ADD, const unsigned NEXT_ADD
 ) {
-#pragma HLS stream variable=add_fm depth=1024 dim=1
+#pragma HLS stream variable=add_in depth=1024 dim=1
 
-	assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0)
-	        || (ROW1==128 && ROW2==64 && ROW3==64 && COL1==96 && COL2==48 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1)
+	assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
+	        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
 	        );
 
-    PosenetBlockAlpha(in, out, add_fm,
-                      wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-                      ROW1, ROW2, ROW3, COL1, COL2, COL3, INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3, STRIDE, IS_ADD);
-    //PosenetBlockAlpha(in, out, add_fm,
+    PosenetBlockAlpha(in, out, add_in, add_out,
+                      wgt1, wgt2, wgt3,
+                      bias1, bias2, bias3,
+                      m0_1, m0_2, m0_3,
+                      ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                      INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3,
+                      STRIDE, IS_ADD, NEXT_ADD);
+    //PosenetBlockAlpha(in, out, add_in,
     //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
     //                8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
 }
@@ -213,8 +294,6 @@ void PosenetBeta(
 #endif
 
 
-//鍚庨潰鍏眰鍋氭垚鐙珛鐨勫姞閫熷櫒,鍒嗗埆锟�?? pwcv, decv, pwcv, decv, pwcv, decv, pwcv, pwcv
-//鍏朵腑 pwcv 锟�?? SIMD鍜孭E閮借锟�??4锟�?? decv鐨凷IMD璁炬垚16
 void PosenetDecv(
         stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * POSE_OUT_BIT>> &out
 ) {
@@ -252,7 +331,7 @@ void PosenetDecv(
     stream<ap_int<POSE_PWCV0_OUTCH*POSE_OUT_BIT>> pw0_out("pw0_out");
 #pragma HLS RESOURCE variable=pw0_out core=FIFO_SRL
 
-    PwConvLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
+    PwConvActLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV0_SIMD,POSE_PWCV0_PE,0,WGT_PWCV0_SIZE,BIAS_M0_PWCV0_SIZE>
             (in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
 
@@ -267,7 +346,7 @@ void PosenetDecv(
     stream<ap_int<POSE_PWCV2_OUTCH*POSE_OUT_BIT>> pw2_out("pw2_out");
 #pragma HLS RESOURCE variable=pw2_out core=FIFO_SRL
 
-    PwConvLayerT<POSE_PWCV2_ROW,POSE_PWCV2_COL,POSE_PWCV2_INCH,POSE_IN_BIT,POSE_PWCV2_OUTCH,POSE_OUT_BIT,
+    PwConvActLayerT<POSE_PWCV2_ROW,POSE_PWCV2_COL,POSE_PWCV2_INCH,POSE_IN_BIT,POSE_PWCV2_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV2_SIMD,POSE_PWCV2_PE,0,WGT_PWCV2_SIZE,BIAS_M0_PWCV2_SIZE>
             (de1_out, pw2_out, pwcv2_w, pwcv2_bias, pwcv2_m0);
 
@@ -282,7 +361,7 @@ void PosenetDecv(
     stream<ap_int<POSE_PWCV4_OUTCH*POSE_OUT_BIT>> pw4_out("pw4_out");
 #pragma HLS RESOURCE variable=pw4_out core=FIFO_SRL
 
-    PwConvLayerT<POSE_PWCV4_ROW,POSE_PWCV4_COL,POSE_PWCV4_INCH,POSE_IN_BIT,POSE_PWCV4_OUTCH,POSE_OUT_BIT,
+    PwConvActLayerT<POSE_PWCV4_ROW,POSE_PWCV4_COL,POSE_PWCV4_INCH,POSE_IN_BIT,POSE_PWCV4_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV4_SIMD,POSE_PWCV4_PE,0,WGT_PWCV4_SIZE,BIAS_M0_PWCV4_SIZE>
             (de3_out, pw4_out, pwcv4_w, pwcv4_bias, pwcv4_m0);
 
@@ -297,7 +376,7 @@ void PosenetDecv(
     stream<ap_int<POSE_PWCV6_OUTCH*POSE_OUT_BIT>> pw6_out("pw6_out");
 #pragma HLS RESOURCE variable=pw6_out core=FIFO_SRL
 
-    PwConvLayerT<POSE_PWCV6_ROW,POSE_PWCV6_COL,POSE_PWCV6_INCH,POSE_IN_BIT,POSE_PWCV6_OUTCH,POSE_OUT_BIT,
+    PwConvActLayerT<POSE_PWCV6_ROW,POSE_PWCV6_COL,POSE_PWCV6_INCH,POSE_IN_BIT,POSE_PWCV6_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV6_SIMD,POSE_PWCV6_PE,0,WGT_PWCV6_SIZE,BIAS_M0_PWCV6_SIZE>
             (de5_out, pw6_out, pwcv6_w, pwcv6_bias, pwcv6_m0);
 
@@ -329,26 +408,76 @@ void PosenetHead(
 
     //TODO:
     ConvLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,0, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
             (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0);
+
+    //cout << dec << "cv0_out size:" << cv0_out.size() << endl;
+#if 0
+        ofstream fphconv0("..\\Test\\hconv0.txt", ios::out);
+    if (!fphconv0)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv0_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv0 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv0 << endl;
+        }
+    }
+    fphconv0.close();
+#endif
 
     stream<ap_int<POSE_HCV1_OUTCH*POSE_OUT_BIT>> cv1_out("cv1_out");
 #pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
 
     DwConvLayerT<POSE_HCV1_ROW,POSE_HCV1_COL,POSE_HCV1_INCH,POSE_IN_BIT,POSE_HCV1_INCH/POSE_HCV1_SIMD,POSE_HCV1_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,0,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,16,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
             (cv0_out, cv1_out, hcv1_w, hcv1_bias, hcv1_m0);
 
+#if 0
+    ofstream fphconv1("..\\Test\\hconv1.txt", ios::out);
+    if (!fphconv1)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv1_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv1 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv1 << endl;
+        }
+    }
+    fphconv1.close();
+#endif
 
     PwConvLayerT<POSE_HCV2_ROW,POSE_HCV2_COL,POSE_HCV2_INCH,POSE_IN_BIT,POSE_HCV2_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,0,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
-            (cv1_out, out, hcv2_w, hcv2_bias, hcv2_m0);
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,16,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
+           (cv1_out, out, hcv2_w, hcv2_bias, hcv2_m0);
+#if 0
+    ofstream fphconv2("..\\Test\\hconv2.txt", ios::out);
+    if (!fphconv2)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV2_COL ; ++w) {
+            ap_int<POSE_HCV2_OUTCH*POSE_IN_BIT> temp =  out.read();
+            for (int ch = 0; ch < POSE_HCV2_OUTCH; ++ch) {
+                cout << dec;
+                fphconv2 << dec << ap_int<8>(temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
+            }
+            fphconv2 << endl;
+        }
+    }
+    fphconv2.close();
+#endif
 }
 
 
 void Top(
-        stream<infm_T> &in,             stream<outfm_T> &out,            stream<addfm_T> &add_fm,
-        stream<wgt1_pe_T>  &wgt1_alpha,  stream<wgt2_T> &wgt2_alpha,       stream<wgt3_pe_T> &wgt3_alpha,
+        stream<infm_T>     &in,          stream<outfm_T> &out,            stream<addfm_T> &add_in, stream<addfm_T> &add_out,
+        stream<wgt1_pe_T>  &wgt1_alpha,  stream<wgt2_T> &wgt2_alpha,      stream<wgt3_pe_T> &wgt3_alpha,
         stream<bias1_pe_T> &bias1_alpha, stream<bias2_pe_T> &bias2_alpha, stream<bias3_pe_T> &bias3_alpha,
         stream<m0_1pe_T>   &m0_1_alpha,  stream<m0_2pe_T> &m0_2_alpha,    stream<m0_3pe_T> &m0_3_alpha,
         const unsigned ROW1_ALPHA, const unsigned ROW2_ALPHA, const unsigned ROW3_ALPHA, const unsigned COL1_ALPHA, const unsigned COL2_ALPHA, const unsigned COL3_ALPHA,
@@ -366,7 +495,7 @@ void Top(
 
 
 //480 channels, 12 cols
-    PosenetAlpha(in, out, add_fm, wgt1_alpha, wgt2_alpha, wgt3_alpha, bias1_alpha, bias2_alpha, bias3_alpha, m0_1_alpha, m0_2_alpha, m0_3_alpha, ROW1_ALPHA, ROW2_ALPHA, ROW3_ALPHA, COL1_ALPHA, COL2_ALPHA,
+    PosenetAlpha(in, out, add_in, add_out, wgt1_alpha, wgt2_alpha, wgt3_alpha, bias1_alpha, bias2_alpha, bias3_alpha, m0_1_alpha, m0_2_alpha, m0_3_alpha, ROW1_ALPHA, ROW2_ALPHA, ROW3_ALPHA, COL1_ALPHA, COL2_ALPHA,
                  COL3_ALPHA, INCH_NUMS1_ALPHA, OUTCH_NUMS1_ALPHA, CH_NUMS2_ALPHA, INCH_NUMS3_ALPHA, OUTCH_NUMS3_ALPHA, STRIDE_ALPHA, IS_ADD_ALPHA, PingPongAlpha);
 #if 0
 //128 channels, 96 cols

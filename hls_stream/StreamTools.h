@@ -23,7 +23,7 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
         unsigned int o = 0;
         ap_int<InWidth> ei = 0;
         for (unsigned int t = 0; t < totalIters; t++) {
-#pragma HLS LOOP_TRIPCOUNT min=3840 max=331776
+#pragma HLS LOOP_TRIPCOUNT min=2880 max=2880
 #pragma HLS PIPELINE II = 1
             // read new input word if current out count is zero
             if (o == 0) {
