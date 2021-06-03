@@ -131,9 +131,9 @@ void PosenetAlpha(
 ) {
 #pragma HLS stream variable=add_in depth=1024 dim=1
 
-	assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
-	        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
-	        );
+	//assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
+	//        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
+	//        );
 
     PosenetBlockAlpha(in, out, add_in, add_out,
                       wgt1, wgt2, wgt3,

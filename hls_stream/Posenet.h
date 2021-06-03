@@ -14,12 +14,12 @@
 #define POSE_M0_BIT             16
 #define POSE_MUL_BIT            32
 
-#define POSE_SIMD1               16
-#define POSE_PE1                 8
-#define POSE_SIMD2               16
-#define POSE_PE2                 16
-#define POSE_SIMD3               16
-#define POSE_PE3                 8
+#define POSE_SIMD1              16
+#define POSE_PE1                8
+#define POSE_SIMD2              16
+#define POSE_PE2                16
+#define POSE_SIMD3              16
+#define POSE_PE3                8
 
 
 // ************************************************************************* //

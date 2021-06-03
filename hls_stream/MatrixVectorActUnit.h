@@ -443,13 +443,13 @@ void DwcvMatrixVectorActUnit(
         cout << hex << "wgt_buf: " << wgt_buf << endl;
         cout << hex << "temp_in_simd: " << temp_in << endl;
 #endif
-        for (ap_uint<8> p = 0; p < SIMD; ++p) {
+        for (ap_uint<16> p = 0; p < SIMD; ++p) {
 #pragma HLS UNROLL
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]: " << acc[p];
 #endif
-            ap_int<W_BIT> temp_wgt = wgt_buf((p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT));
-            ap_int<IN_BIT> temp = temp_in((p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT));
+            ap_int<W_BIT> temp_wgt = ap_int<W_BIT>(wgt_buf((p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
+            ap_int<IN_BIT> temp    = ap_int<IN_BIT>(temp_in((p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT)));
             ap_int<W_BIT+IN_BIT> mul;
             mul = temp_wgt * temp;
             acc[p] += mul;
