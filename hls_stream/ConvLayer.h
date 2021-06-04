@@ -21,9 +21,7 @@ template<
         unsigned K,
         unsigned SIMD,
         unsigned PE,
-        unsigned RSHIFT,           //TODO:
-        unsigned WGT_ARRAYSIZE,    //TODO:
-        unsigned BIAS_M0_ARRAYSIZE //TODO:
+        unsigned RSHIFT           //TODO:
         >
 void DwConvActLayerAlpha(
         stream<ap_int<IN_CH*IN_BIT>> &in,
@@ -83,7 +81,7 @@ void DwConvActLayerAlpha(
 
     //stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
 
-    DwcvMatrixVectorActUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE>
+    DwcvMatrixVectorActUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT>
             (swu_out, out, weights, bias, m0, IN_CH_NUMS*IN_CH*K*K, OUT_CH, IN_CH_NUMS, OUT_ROW*OUT_COL);
 
     //StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*IN_CH_NUMS, IN_CH_NUMS*IN_CH/OUT_CH);
@@ -108,9 +106,7 @@ template<
         unsigned K,
         unsigned SIMD,
         unsigned PE,
-        unsigned RSHIFT,           //TODO:
-        unsigned WGT_ARRAYSIZE,    //TODO:
-        unsigned BIAS_M0_ARRAYSIZE //TODO:
+        unsigned RSHIFT           //TODO:
 >
 void PwConvActLayer(
         stream<ap_int<IN_CH*IN_BIT>> &in,
@@ -131,7 +127,7 @@ void PwConvActLayer(
     StreamingDataWidthConverter_Batch<IN_CH*IN_BIT, SIMD*IN_BIT>(in, adj_out, K*K*IN_ROW*IN_COL*IN_CH_NUMS, IN_CH_NUMS);
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
-    PwcvMatrixVectorActUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE>
+    PwcvMatrixVectorActUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT>
             (adj_out, mvau_out, weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL);
 
     StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*OUT_CH_NUMS, IN_CH_NUMS);
@@ -153,9 +149,7 @@ template<
         unsigned K,
         unsigned SIMD,
         unsigned PE,
-        unsigned RSHIFT,           //TODO:
-        unsigned WGT_ARRAYSIZE,    //TODO:
-        unsigned BIAS_M0_ARRAYSIZE //TODO:
+        unsigned RSHIFT           //TODO:
 >
 void PwConvAddLayer(
         stream<ap_int<IN_CH*IN_BIT>> &in,
@@ -180,7 +174,7 @@ void PwConvAddLayer(
     StreamingDataWidthConverter_Batch<IN_CH*IN_BIT, SIMD*IN_BIT>(in, adj_out, K*K*IN_ROW*IN_COL*IN_CH_NUMS, IN_CH_NUMS);
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
-    PwcvAddMatrixVectorUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE>
+    PwcvAddMatrixVectorUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT>
             (adj_out, mvau_out, add_in, add_out, weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL, IS_ADD, NEXT_ADD);
 
     StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*OUT_CH_NUMS, OUT_CH_NUMS);
@@ -499,3 +493,48 @@ void ConvLayerT(
     StreamingDataWidthConverter_BatchT<PE*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*OUT_CH/PE>(mvau_out, out);
 }
 
+template<
+        unsigned IN_ROW,
+        unsigned IN_COL,
+        unsigned IN_CH,
+        unsigned IN_BIT,
+
+        unsigned OUT_CH,
+        unsigned OUT_BIT,
+
+        unsigned W_BIT,
+        unsigned MUL_BIT,
+        unsigned BIAS_BIT,
+        unsigned M0_BIT,
+
+        unsigned K,
+        unsigned S,
+        unsigned SIMD,
+        unsigned PE,
+        unsigned RSHIFT,           //TODO:
+        unsigned WGT_ARRAYSIZE,    //TODO:
+        unsigned BIAS_M0_ARRAYSIZE //TODO:
+>
+void LastConvLayerT(
+        stream<ap_int<IN_CH*IN_BIT>> &in,
+        stream<ap_int<OUT_CH*OUT_BIT>> &out,
+        const ap_int<SIMD*W_BIT> weights[PE][WGT_ARRAYSIZE],
+        const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
+        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
+) {
+#pragma HLS DATAFLOW
+
+
+    const unsigned INTER_ROW = IN_ROW + 2;
+    const unsigned INTER_COL = IN_COL + 2;
+    const unsigned OUT_ROW = (INTER_ROW - K) / S + 1;
+    const unsigned OUT_COL = (INTER_COL - K) / S + 1;
+
+    stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
+    StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, K*K*OUT_ROW*OUT_COL>(in, adj_out);
+
+    LastPwcvMatrixVectorUnitT<IN_CH*K*K, OUT_CH, IN_BIT,  OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
+            RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE, OUT_ROW*OUT_COL>
+            (adj_out, out, weights, bias, m0);
+
+}

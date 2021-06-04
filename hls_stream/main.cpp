@@ -182,8 +182,8 @@ int main() {
 
     PosenetHead(in, head_out);
 
-    stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> add_in("add_in");
-    stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> add_out("add_out");
+    stream<ap_int<POSE_PE3*POSE_IN_BIT>> add_in("add_in");
+    stream<ap_int<POSE_PE3*POSE_IN_BIT>> add_out("add_out");
     stream<ap_int<POSE_OUT_CH*POSE_IN_BIT>> blk1_out("blk1_out");
 
     int8_t *weight1 = (int8_t *) malloc(16*48* sizeof(int8_t));
@@ -529,7 +529,7 @@ int main() {
     }
     fpblk2m3.close();
 
-    stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> add_blk2_out("add_out");
+    stream<ap_int<POSE_PE3*POSE_IN_BIT>> add_blk2_out("add_out");
     stream<ap_int<POSE_OUT_CH*POSE_IN_BIT>> blk2_out("blk2_out");
     PosenetAlpha(blk1_out, blk2_out, add_out, add_blk2_out,
                  wgt4, wgt5, wgt6, bias4, bias5, bias6, m0_4, m0_5, m0_6,

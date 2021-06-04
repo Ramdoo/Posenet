@@ -41,7 +41,7 @@ void SWU(
     unsigned pointer = 0;
     unsigned h = 0;
     for (unsigned rep = 0; rep < IN_ROW; rep++) {
-#pragma HLS LOOP_TRIPCOUNT min=10 max=10
+#pragma HLS LOOP_TRIPCOUNT min=66 max=66
         if (h == IN_ROW) {
             initial_fill = 0;
             stride = 0;
@@ -53,7 +53,7 @@ void SWU(
         cout << dec << "width pointer: " << pointer << endl;
 #endif
         for (unsigned w = 0; w < IN_COL; ++w) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=8
+#pragma HLS LOOP_TRIPCOUNT min=50 max=50
 #pragma HLS PIPELINE II=1
             unsigned line_buffer_pointer = pointer + w;
             if (line_buffer_pointer >= line_buffer_size) {
@@ -64,7 +64,7 @@ void SWU(
             cout << "tmp_in: ";
 #endif
             for (unsigned nums = 0; nums < IN_CH_NUMS; ++nums) {
-#pragma HLS LOOP_TRIPCOUNT min=30 max=30
+#pragma HLS LOOP_TRIPCOUNT min=6 max=6
                 tmp_in = in_fm.read();
                 line_buffer[line_buffer_pointer][nums] = tmp_in;
 #if SWU_DEBUG
@@ -111,7 +111,7 @@ void SWU(
             unsigned ch_nums = 0;
 
             for (unsigned i = 0; i < steps*(K*K)*IN_CH_NUMS; ++i) {
-#pragma HLS LOOP_TRIPCOUNT min=1620 max=1620
+#pragma HLS LOOP_TRIPCOUNT min=1296 max=1296
 #pragma HLS PIPELINE II=1
                 unsigned read_address = pointer+ (s*S + ky * IN_COL + kx);
                 if (read_address >= line_buffer_size) {
