@@ -1453,28 +1453,26 @@ void LastPwcvMatrixVectorUnitT(
         }
         cout << "\n}" << endl;
 #endif
-
-        for (ap_uint<8> p = 0; p < PE; p+=2) {
+        {
+            for (ap_uint<8> p = 0; p < 16; p+=2) {
 #pragma HLS UNROLL
-            ap_int<SIMD*W_BIT> temp_wgt_a = weights[p][tile];
-            ap_int<SIMD*W_BIT> temp_wgt_b;
-            if (p == PE) {
-                temp_wgt_b = 0;
-            } else {
-                temp_wgt_b = weights[p+1][tile];
-            }
+                ap_int<SIMD*W_BIT> temp_wgt_a = weights[p][tile];
+                ap_int<SIMD*W_BIT> temp_wgt_b = weights[p+1][tile];
 #if MVAU_DEBUG
-            cout << hex << "before acc[" << p << "]:" << acc[p] << ", before acc[" << p+1 << "]:" << acc[p+1] << endl;
+                cout << hex << "before acc[" << p << "]:" << acc[p] << ", before acc[" << p+1 << "]:" << acc[p+1] << endl;
 #endif
-            ap_int<45> res = SimdMulReuse<W_BIT, IN_BIT, MUL_BIT, SIMD>(temp_wgt_a, temp_wgt_b, temp_in);
-            acc[p] += ap_int<21>(res(41,21));
-            acc[p+1] += ap_int<21>(res(20,0));
+                ap_int<45> res = SimdMulReuse<W_BIT, IN_BIT, MUL_BIT, SIMD>(temp_wgt_a, temp_wgt_b, temp_in);
+                acc[p] += ap_int<21>(res(41,21));
+                acc[p+1] += ap_int<21>(res(20,0));
 #if MVAU_DEBUG
-            cout << hex << "  temp_wgt_a:" << temp_wgt_a  << ", temp_in:" << temp_in;
+                cout << hex << "  temp_wgt_a:" << temp_wgt_a  << ", temp_in:" << temp_in;
             cout << hex << ", acc[" << p << "]: " << acc[p] << dec << ", dec acc[" << p << "]: " << acc[p] << endl;
             cout << hex << "  temp_wgt_b:" << temp_wgt_b  << ", temp_in:" << temp_in;
             cout << hex << ", acc[" << p+1 << "]: " << acc[p+1] << dec << ", dec acc[" << p+1 << "]: " << acc[p+1] << endl;
 #endif
+            }
+            ap_int<SIMD*W_BIT> temp_wgt = weights[16][tile];
+            acc[16] += SimdMul<W_BIT, IN_BIT, MUL_BIT, SIMD>(temp_wgt, temp_in);
         }
 
         ++tile;
