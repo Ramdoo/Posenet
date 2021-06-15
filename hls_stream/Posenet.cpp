@@ -129,7 +129,20 @@ void PosenetAlpha(
         const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE,
         const unsigned IS_ADD, const unsigned NEXT_ADD
 ) {
-#pragma HLS stream variable=add_in depth=1024 dim=1
+//#pragma HLS stream variable=add_in depth=1024 dim=1
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
+#pragma HLS INTERFACE axis port=add_in
+#pragma HLS INTERFACE axis port=add_out
+#pragma HLS INTERFACE axis port=wgt1
+#pragma HLS INTERFACE axis port=wgt2
+#pragma HLS INTERFACE axis port=wgt3
+#pragma HLS INTERFACE axis port=bias1
+#pragma HLS INTERFACE axis port=bias2
+#pragma HLS INTERFACE axis port=bias3
+#pragma HLS INTERFACE axis port=m0_1
+#pragma HLS INTERFACE axis port=m0_2
+#pragma HLS INTERFACE axis port=m0_3
 
 	//assert(
 	//           (ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==10 && CH_NUMS2==10 && INCH_NUMS3==10 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
@@ -390,6 +403,9 @@ void PosenetDecv(
 void PosenetHead(
         stream<ap_int<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_HCV2_OUTCH * POSE_OUT_BIT>> &out
 ) {
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
+
 #pragma HLS DATAFLOW
 
 #pragma HLS ARRAY_PARTITION variable=hcv0_w    complete dim=1
