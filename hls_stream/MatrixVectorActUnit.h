@@ -3,6 +3,7 @@
 #define MVAU_DEBUG 0
 #define RELU_DEBUG 0
 #include "Function.h"
+#include "Posenet.h"
 using namespace hls;
 using namespace std;
 
@@ -239,11 +240,11 @@ void PwcvMatrixVectorActUnit(
 #endif
     ap_int<SIMD*IN_BIT> row_store[5]; //80/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
-    ap_int<SIMD*W_BIT> wgt_store[150][PE];
+    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE1][PE];
 #pragma HLS ARRAY_PARTITION variable=wgt_store complete dim=2
-    ap_int<PE*BIAS_BIT> bias_store[30];
+    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE1];
 #pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[30];
+    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE1];
 #pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;
@@ -410,15 +411,15 @@ void DwcvMatrixVectorActUnit(
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[SIMD];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
-    ap_int<SIMD*W_BIT> wgt_store[270];
+    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE2];
 #pragma HLS RESOURCE variable=wgt_store core=RAM_2P_BRAM
-    ap_int<PE*BIAS_BIT> bias_store[30];
+    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE2];
 #pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[30];
+    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE2];
 #pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
-#pragma HLS LOOP_TRIPCOUNT min=41472 max=41472
+#pragma HLS LOOP_TRIPCOUNT min=27648 max=27648
 #pragma HLS PIPELINE II=1
         temp_in = in_fm.read();
         if (in_fold_cnt == 0) {
@@ -667,11 +668,11 @@ void PwcvAddMatrixVectorUnit(
 #endif
     ap_int<SIMD*IN_BIT> row_store[30]; //480/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
-    ap_int<SIMD*W_BIT> wgt_store[300][PE];
+    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE3][PE];
 #pragma HLS ARRAY_PARTITION variable=wgt_store complete dim=2
-    ap_int<PE*BIAS_BIT> bias_store[10];
+    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE3];
 #pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[10];
+    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE3];
 #pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;

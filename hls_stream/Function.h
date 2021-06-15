@@ -52,10 +52,10 @@ ap_int<45> SimdMulReuse(
     for (ap_uint<8> p = 0; p < SIMD; ++p) {
 #pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
-        ap_int<27> temp_wgt_a = ap_int<8>(weights_a( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
-        ap_int<27> temp_wgt_b = ap_int<8>(weights_b( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
+        ap_int<25> temp_wgt_a = ap_int<8>(weights_a( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
+        ap_int<25> temp_wgt_b = ap_int<8>(weights_b( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
         ap_int<18> temp_in    = ap_int<8>(in((p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT)));
-        temp_wgt_a = temp_wgt_a << 18;
+        temp_wgt_a = temp_wgt_a << 16;
         ap_int<45> mul;
         mul = (temp_wgt_a + temp_wgt_b) * temp_in;
 #if 0

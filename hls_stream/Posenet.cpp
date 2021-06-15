@@ -28,7 +28,7 @@ void PosenetBlockAlpha(
     stream<innerfm_T> pw1_out("pw1_out");
 #pragma HLS STREAM variable=pw1_out depth=128 dim=1
 
-    PwConvActLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD1,POSE_PE1,16>
+    PwConvActLayer<POSE_IN_CH,POSE_IN_BIT,POSE_INTER_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD1,POSE_PE1,16>
             (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, INCH_NUMS1, OUTCH_NUMS1);
 #if 0
     cout << dec << "pw1_out size: " << pw1_out.size() << endl;
@@ -53,7 +53,7 @@ void PosenetBlockAlpha(
     stream<innerfm_T> dw2_out("dw2_out");
 #pragma HLS STREAM variable=dw2_out depth=128 dim=1
 
-    DwConvActLayerAlpha<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD2,POSE_PE2,16>
+    DwConvActLayerAlpha<POSE_INTER_CH,POSE_IN_BIT,POSE_INTER_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD2,POSE_PE2,16>
             (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2);
 #if 0
     cout << dec << "dw2_out size: " << dw2_out.size() << endl;
@@ -75,7 +75,7 @@ void PosenetBlockAlpha(
     fpblk1cv2.close();
 #endif
 
-    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16>
+    PwConvAddLayer<POSE_INTER_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16>
             (dw2_out, out, add_in, add_out, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD, NEXT_ADD);
 #if 0
     cout << dec << "out size: " << out.size() << endl;
@@ -131,10 +131,11 @@ void PosenetAlpha(
 ) {
 #pragma HLS stream variable=add_in depth=1024 dim=1
 
-	assert((ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==30 && CH_NUMS2==30 && INCH_NUMS3==30 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
-	        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==3 && CH_NUMS2==3 && INCH_NUMS3==3 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
-            || (ROW1==64 && ROW2==64 && ROW3==32 && COL1==48 && COL2==48 && COL3==24 && INCH_NUMS1==1 && OUTCH_NUMS1==6 && CH_NUMS2==6 && INCH_NUMS3==6 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==0 && NEXT_ADD==1)
-	        );
+	//assert(
+	//           (ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==10 && CH_NUMS2==10 && INCH_NUMS3==10 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
+	//        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==1 && CH_NUMS2==1 && INCH_NUMS3==1 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
+    //        || (ROW1==64 && ROW2==64 && ROW3==32 && COL1==48 && COL2==48 && COL3==24 && INCH_NUMS1==1 && OUTCH_NUMS1==2 && CH_NUMS2==2 && INCH_NUMS3==2 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==0 && NEXT_ADD==1)
+	//        );
 
     PosenetBlockAlpha(in, out, add_in, add_out,
                       wgt1, wgt2, wgt3,
@@ -143,9 +144,7 @@ void PosenetAlpha(
                       ROW1, ROW2, ROW3, COL1, COL2, COL3,
                       INCH_NUMS1, OUTCH_NUMS1, CH_NUMS2, INCH_NUMS3, OUTCH_NUMS3,
                       STRIDE, IS_ADD, NEXT_ADD);
-    //PosenetBlockAlpha(in, out, add_in,
-    //                  wgt1, wgt2, wgt3, bias1, bias2, bias3, m0_1, m0_2, m0_3,
-    //                8, 8, 8, 6, 6, 6, 5, 30, 30, 30, 5, 1, 1);
+
 }
 
 

@@ -27,7 +27,7 @@ void Padding(
     for (int h = 0; h < P; ++h) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
         for (int w = 0; w < OUT_COL; ++w) {
-#pragma HLS LOOP_TRIPCOUNT min=6 max=96
+#pragma HLS LOOP_TRIPCOUNT min=98 max=98
 #pragma HLS PIPELINE II=1
             for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
@@ -36,9 +36,9 @@ void Padding(
         }
     }
     for (int h = 0; h < IN_ROW; ++h) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=128
+#pragma HLS LOOP_TRIPCOUNT min=128 max=128
         for (int w = 0; w < OUT_COL; ++w) {
-#pragma HLS LOOP_TRIPCOUNT min=6 max=96
+#pragma HLS LOOP_TRIPCOUNT min=98 max=98
 #pragma HLS PIPELINE II=1
             for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
@@ -54,7 +54,7 @@ void Padding(
     for (int h = 0; h < P; ++h) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
         for (int w = 0; w < OUT_COL; ++w) {
-#pragma HLS LOOP_TRIPCOUNT min=6 max=96
+#pragma HLS LOOP_TRIPCOUNT min=98 max=98
 #pragma HLS PIPELINE II=1
             for (int nums = 0; nums < IN_CH_NUMS; ++nums) {
 #pragma HLS LOOP_TRIPCOUNT min=1 max=1
@@ -150,4 +150,3 @@ void DilationPaddingT(
     }
 
 }
-

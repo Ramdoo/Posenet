@@ -5,7 +5,7 @@
 
 #define POSE_IN_CH              16
 #define POSE_OUT_CH             16
-#define POSE_INTER_CH           16
+#define POSE_INTER_CH           48
 
 #define POSE_IN_BIT             8
 #define POSE_OUT_BIT            8
@@ -16,11 +16,17 @@
 
 #define POSE_SIMD1              16
 #define POSE_PE1                8
-#define POSE_SIMD2              16
-#define POSE_PE2                16
+#define POSE_SIMD2              48
+#define POSE_PE2                48
 #define POSE_SIMD3              16
 #define POSE_PE3                8
 
+#define WGT_SIZE1               80*480/POSE_SIMD1/POSE_PE1
+#define WGT_SIZE2               9*480/POSE_SIMD2
+#define WGT_SIZE3               160*480/POSE_SIMD3/POSE_PE3
+#define BIAS_M0_SIZE1               480/POSE_PE1
+#define BIAS_M0_SIZE2               480/POSE_PE2
+#define BIAS_M0_SIZE3               160/POSE_PE3
 
 // ************************************************************************* //
 // head 3 layers

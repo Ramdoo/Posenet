@@ -23,7 +23,7 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
         unsigned int o = 0;
         ap_int<InWidth> ei = 0;
         for (unsigned int t = 0; t < totalIters; t++) {
-#pragma HLS LOOP_TRIPCOUNT min=2880 max=2880
+#pragma HLS LOOP_TRIPCOUNT min=9216 max=9216
 #pragma HLS PIPELINE II = 1
             // read new input word if current out count is zero
             if (o == 0) {
@@ -44,7 +44,7 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
     } else if (InWidth == OutWidth) {
         // straight-through copy
         for (unsigned int i = 0; i < NumInWords/* * numReps*/; i++) {
-#pragma HLS LOOP_TRIPCOUNT min=768 max=768
+#pragma HLS LOOP_TRIPCOUNT min=36864 max=36864
 #pragma HLS PIPELINE II = 1
             ap_int<InWidth> e = in.read();
             out.write(e);
@@ -57,7 +57,7 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
         unsigned int i = 0;
         ap_int<OutWidth> eo = 0;
         for (unsigned int t = 0; t < totalIters; t++) {
-#pragma HLS LOOP_TRIPCOUNT min=768 max=768
+#pragma HLS LOOP_TRIPCOUNT min=1636 max=1636
 #pragma HLS PIPELINE II = 1
             // read input and shift into output buffer
             ap_int<InWidth> ei = in.read();
