@@ -221,31 +221,31 @@ template<
 void PwcvMatrixVectorActUnit(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
         stream<ap_int<PE*OUT_BIT>> &out_fm,
-        stream<ap_int<PE*SIMD*W_BIT>> &weights,
-        stream<ap_int<PE*BIAS_BIT>> &bias,
-        stream<ap_uint<PE*M0_BIT>> &m0,
+        ap_int<SIMD*W_BIT> weights[WGT_SIZE1][PE],
+        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE1],
+        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE1],
         const ap_uint<16> MAT_ROW,
         const ap_uint<16> MAT_COL,
         const ap_uint<16> VECT_NUMS
 ) {
+#pragma HLS ARRAY_PARTITION variable=weights complete dim=2
+#pragma HLS ARRAY_PARTITION variable=bias dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=m0 dim=1 complete
+
     const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned OUTPUT_FOLE = MAT_COL/PE;
     const unsigned total_fold = INPUT_FOLD * OUTPUT_FOLE;
     const unsigned total_reps = total_fold * VECT_NUMS;
+
 #if MVAU_DEBUG
     cout << dec << "INPUT_FOLD : " << INPUT_FOLD << endl;
     cout << dec << "OUTPUT_FOLD: " << OUTPUT_FOLE << endl;
     cout << dec << "VECT_NUMS: "   << VECT_NUMS << endl;
     cout << dec << "total_reps : " << total_reps << endl;
 #endif
+
     ap_int<SIMD*IN_BIT> row_store[5]; //80/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
-    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE1][PE];
-#pragma HLS ARRAY_PARTITION variable=wgt_store complete dim=2
-    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
@@ -279,28 +279,14 @@ void PwcvMatrixVectorActUnit(
         cout << "\n}" << endl;
 #endif
 
-        ap_int<PE*SIMD*W_BIT> wgt_buf;
-        if (vect_cnt == 0) {
-            wgt_buf = weights.read();
-            for (ap_uint<16> p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                wgt_store[rep][p] = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT))); //TODO:
-            }
-        }
-//        else {
-//            for (ap_uint<16> p = 0; p < PE; ++p) {
-//#pragma HLS UNROLL
-//                wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT))) = wgt_store[rep % total_fold][p];
-//            }
-//        }
 
         static_assert(PE % 2 ==0, "PE mod 2 is not 0!");
         for (ap_uint<16> p = 0; p < PE; p+=2) {
 #pragma HLS UNROLL
             //ap_int<SIMD*W_BIT> temp_wgt_a = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT)));
-            ap_int<SIMD*W_BIT> temp_wgt_a = wgt_store[rep % total_fold][p];
+            ap_int<SIMD*W_BIT> temp_wgt_a = weights[rep % total_fold][p];
             //ap_int<SIMD*W_BIT> temp_wgt_b = wgt_buf(((p+1)<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), ((p+1)<<(LOG_SIMD+LOG_W_BIT)));
-            ap_int<SIMD*W_BIT> temp_wgt_b = wgt_store[rep % total_fold][p+1];
+            ap_int<SIMD*W_BIT> temp_wgt_b = weights[rep % total_fold][p+1];
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]:" << acc[p] << endl;
             cout << hex << "before acc[" << p+1 << "]:" << acc[p+1] << endl;
@@ -319,17 +305,8 @@ void PwcvMatrixVectorActUnit(
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            ap_int<PE*BIAS_BIT> bias_buf;
-            ap_int<PE*M0_BIT>   m0_buf;
-            if (vect_cnt == 0) {
-                bias_buf = bias.read();
-                m0_buf   = m0.read();
-                bias_store[out_fold_cnt] = bias_buf;
-                m0_store[out_fold_cnt]   = m0_buf;
-            } else {
-                bias_buf = bias_store[out_fold_cnt];
-                m0_buf   = m0_store[out_fold_cnt];
-            }
+            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
+            ap_int<PE*M0_BIT>   m0_buf = m0[out_fold_cnt];
             ap_int<PE*OUT_BIT>  out_buf;
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
@@ -381,14 +358,16 @@ template<
 void DwcvMatrixVectorActUnit(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
         stream<ap_int<PE*OUT_BIT>> &out_fm,
-        stream<ap_int<SIMD*W_BIT>> &weights,
-        stream<ap_int<PE*BIAS_BIT>> &bias,
-        stream<ap_uint<PE*M0_BIT>> &m0,
+        ap_int<SIMD*W_BIT> weights[WGT_SIZE2],
+        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE2],
+        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE2],
         const unsigned MAT_ROW, // K*K*CH
         const unsigned MAT_COL, // 1
         const unsigned IN_CH_NUMS,
         const unsigned VECT_NUMS
 ) {
+#pragma HLS ARRAY_PARTITION variable=bias dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=m0 dim=1 complete
 
     //const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned INPUT_FOLD  = 9;
@@ -429,13 +408,7 @@ void DwcvMatrixVectorActUnit(
             }
         }
 
-        ap_int<SIMD*W_BIT> wgt_buf;
-        if (vect_cnt == 0) {
-            wgt_buf = weights.read();
-            wgt_store[rep] = wgt_buf;
-        } else {
-            wgt_buf = wgt_store[rep % total_fold];
-        }
+        ap_int<SIMD*W_BIT> wgt_buf = weights[rep % total_fold];
 #if MVAU_DEBUG
         cout << hex << "wgt_buf: " << wgt_buf << endl;
         cout << hex << "temp_in_simd: " << temp_in << endl;
@@ -460,17 +433,8 @@ void DwcvMatrixVectorActUnit(
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
             ap_int<PE*OUT_BIT>  out_buf;
-            ap_int<PE*BIAS_BIT> bias_buf;
-            ap_int<PE*M0_BIT>   m0_buf;
-            if (vect_cnt == 0) {
-                bias_buf = bias.read();
-                m0_buf   = m0.read();
-                bias_store[out_fold_cnt] = bias_buf;
-                m0_store[out_fold_cnt]   = m0_buf;
-            } else {
-                bias_buf = bias_store[out_fold_cnt];
-                m0_buf   = m0_store[out_fold_cnt];
-            }
+            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
+            ap_int<PE*M0_BIT>   m0_buf = m0[out_fold_cnt];
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
                 ap_int<BIAS_BIT> tmp_bias = ap_int<BIAS_BIT>(bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT)));
@@ -648,32 +612,32 @@ void PwcvAddMatrixVectorUnit(
     stream<ap_int<PE*OUT_BIT>> &out_fm,
     stream<ap_int<PE*OUT_BIT>> &add_in,
     stream<ap_int<PE*OUT_BIT>> &add_out,
-    stream<ap_int<PE*SIMD*W_BIT>> &weights,
-    stream<ap_int<PE*BIAS_BIT>> &bias,
-    stream<ap_uint<PE*M0_BIT>> &m0,
+    ap_int<SIMD*W_BIT> weights[WGT_SIZE3][PE],
+    ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE3],
+    ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE3],
     const ap_uint<16> MAT_ROW,
     const ap_uint<16> MAT_COL,
     const ap_uint<16> VECT_NUMS,
     const ap_uint<1> IS_ADD,
     const ap_uint<1> NEXT_ADD
 ) {
+#pragma HLS ARRAY_PARTITION variable=weights complete dim=2
+#pragma HLS ARRAY_PARTITION variable=bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0 complete dim=1
+
     const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned OUTPUT_FOLE = MAT_COL/PE;
     const unsigned total_fold = INPUT_FOLD * OUTPUT_FOLE;
     const unsigned total_reps = total_fold * VECT_NUMS;
+
 #if MVAU_DEBUG
     cout << "INPUT_FOLD : " << INPUT_FOLD << endl;
     cout << "OUTPUT_FOLD: " << OUTPUT_FOLE << endl;
     cout << "total_reps : " << total_reps << endl;
 #endif
+
     ap_int<SIMD*IN_BIT> row_store[30]; //480/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
-    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE3][PE];
-#pragma HLS ARRAY_PARTITION variable=wgt_store complete dim=2
-    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
@@ -707,22 +671,13 @@ void PwcvAddMatrixVectorUnit(
         cout << "\n}" << endl;
 #endif
 
-        ap_int<PE*SIMD*W_BIT> wgt_buf;
-        if (vect_cnt == 0) {
-            wgt_buf = weights.read();
-            for (ap_uint<16> p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                wgt_store[rep][p] = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT))); //TODO:
-            }
-        }
-
         static_assert(PE % 2 == 0, "PE mod 2 is not 0!");
         for (ap_uint<16> p = 0; p < PE; p+=2) {
 #pragma HLS UNROLL
             //ap_int<SIMD*W_BIT> temp_wgt_a = wgt_buf((p<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), (p<<(LOG_SIMD+LOG_W_BIT)));
-            ap_int<SIMD*W_BIT> temp_wgt_a = wgt_store[rep % total_fold][p];
+            ap_int<SIMD*W_BIT> temp_wgt_a = weights[rep % total_fold][p];
             //ap_int<SIMD*W_BIT> temp_wgt_b = wgt_buf(((p+1)<<(LOG_SIMD+LOG_W_BIT))+(SIMD*W_BIT-1), ((p+1)<<(LOG_SIMD+LOG_W_BIT)));
-            ap_int<SIMD*W_BIT> temp_wgt_b = wgt_store[rep % total_fold][p+1];
+            ap_int<SIMD*W_BIT> temp_wgt_b = weights[rep % total_fold][p+1];
 #if MVAU_DEBUG
             cout << hex << "before acc[" << p << "]:" << acc[p] << endl;
             cout << hex << "before acc[" << p+1 << "]:" << acc[p+1] << endl;
@@ -743,17 +698,8 @@ void PwcvAddMatrixVectorUnit(
             in_fold_cnt = 0;
             ap_int<PE*OUT_BIT> out_buf;
             ap_int<PE*OUT_BIT> addfm_buf = 0;
-            ap_int<PE*BIAS_BIT> bias_buf;
-            ap_int<PE*M0_BIT>   m0_buf;
-            if (vect_cnt == 0) {
-                bias_buf = bias.read();
-                m0_buf   = m0.read();
-                bias_store[out_fold_cnt] = bias_buf;
-                m0_store[out_fold_cnt]   = m0_buf;
-            } else {
-                bias_buf = bias_store[out_fold_cnt];
-                m0_buf   = m0_store[out_fold_cnt];
-            }
+            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
+            ap_int<PE*M0_BIT>   m0_buf   = m0[out_fold_cnt];
             if (IS_ADD)
                 addfm_buf = add_in.read();
             for (ap_uint<16> p = 0; p < PE; ++p) {
@@ -910,117 +856,6 @@ for (unsigned rep = 0; rep < total_reps; ++rep) {
 #endif
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
-template<
-        unsigned MAT_ROW,
-        unsigned MAT_COL,
-
-        unsigned IN_BIT,
-        unsigned SIMD_NUMS,
-        unsigned OUT_BIT,
-
-        unsigned MUL_BIT,
-        unsigned W_BIT,
-        unsigned BIAS_BIT,
-        unsigned M0_BIT,
-
-        unsigned SIMD,
-        unsigned PE,
-
-        unsigned RSHIFT,            //TODO
-        unsigned WGT_ARRAYSIZE,     //TODO:
-        unsigned BIAS_M0_ARRAYSIZE,  //TODO:
-        unsigned short VECT_NUMS
->
-void DwcvMatrixVectorActUnitTest(
-        stream<ap_int<SIMD*IN_BIT>> &in_fm,
-        stream<ap_int<PE*OUT_BIT>> &out_fm,
-        const ap_int<SIMD*W_BIT> weights[WGT_ARRAYSIZE],
-        const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
-        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
-) {
-    static_assert(SIMD == PE, "SIMD is not PE");
-
-    //const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
-    const unsigned short INPUT_FOLD  = 9;
-    const unsigned short OUTPUT_FOLE = MAT_COL/PE;
-    const ap_int<25> total_reps = INPUT_FOLD * OUTPUT_FOLE * VECT_NUMS;
-#if 1//MVAU_DEBUG
-    const unsigned CH = SIMD*SIMD_NUMS;
-    cout << dec << "INPUT_FOLD : " << INPUT_FOLD << endl;
-    cout << dec << "OUTPUT_FOLD: " << OUTPUT_FOLE << endl;
-    cout << dec << "VECT_NUMS: " << VECT_NUMS << endl;
-    cout << dec << "total_reps : " << total_reps << endl;
-    cout << dec << "CH : " << CH << endl;
-#endif
-    unsigned in_fold_cnt  = 0;
-    unsigned out_fold_cnt  = 0;
-
-    ap_int<SIMD*IN_BIT> temp_in;
-    ap_int<MUL_BIT> acc[PE];
-#pragma HLS ARRAY_PARTITION variable=acc complete dim=1
-
-    for (unsigned rep = 0; rep < total_reps; ++rep) {
-#pragma HLS PIPELINE II=1
-        temp_in = in_fm.read();
-        if (in_fold_cnt == 0) {
-            for (unsigned p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                acc[p] = 0;
-            }
-        }
-
-        ap_int<SIMD*W_BIT> temp_wgt_simd = weights[out_fold_cnt*INPUT_FOLD+in_fold_cnt];
-#if 1//MVAU_DEBUG
-        cout << hex << "temp_wgt_simd: " << ap_uint<SIMD*W_BIT>(temp_wgt_simd) << endl;
-        cout << hex << "temp_in_simd: " << temp_in << endl;
-#endif
-        for (ap_uint<16> p = 0; p < SIMD; ++p) {
-#pragma HLS UNROLL
-            //unsigned index = ch_nums*SIMD + p;
-#if 1//MVAU_DEBUG
-            cout << hex << "before acc[" << p << "]: " << acc[p];
-#endif
-            ap_int<W_BIT> temp_wgt = ap_int<W_BIT>(temp_wgt_simd( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
-            ap_int<IN_BIT> temp = ap_int<IN_BIT>(temp_in( (p<<LOG_IN_BIT)+(IN_BIT-1), (p<<LOG_IN_BIT)));
-            ap_int<W_BIT+IN_BIT> mul;
-            mul = temp_wgt * temp;
-            acc[p] += mul;
-#if 1//MVAU_DEBUG
-            cout << hex << ", hex temp_wgt: " << temp_wgt  << ", temp: " << temp;
-            cout << dec << ", dec temp_wgt: " << temp_wgt  << ", temp: " << temp;
-            cout << hex << ", acc[" << p << "]: " << acc[p] << endl;
-#endif
-        }
-
-        ++in_fold_cnt;
-        if (in_fold_cnt == INPUT_FOLD) {
-            in_fold_cnt = 0;
-            ap_int<PE*OUT_BIT> out_buf;
-            for (ap_int<16> p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, M0_BIT, BIAS_BIT, RSHIFT>(
-                        acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
-            }
-#if 1//MVAU_DEBUG
-            cout << dec << "Rshift: " << RSHIFT << endl;
-            cout << dec << "rep:" << rep << endl;
-            cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
-            for (unsigned p = 0; p < PE; ++p) {
-                cout << dec << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
-                     << ", acc["<< p << "]: " << acc[p] << ", bias: "
-                     << bias[p][out_fold_cnt] << ", m0: " << m0[p][out_fold_cnt] << endl;
-            }
-            cout << hex << "out_buf: " << out_buf << endl;
-            cout << endl;
-#endif
-            out_fm.write(out_buf);
-            if (++out_fold_cnt == OUTPUT_FOLE) {
-                out_fold_cnt = 0;
-            }
-        }
-    }
-}
 
 
 //函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
@@ -1540,10 +1375,15 @@ void LastPwcvMatrixVectorUnitT(
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
     unsigned tile         = 0;
+    unsigned vect_num     = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
+    ap_int<MUL_BIT> max_acc[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_acc complete dim=0
+    ap_int<MUL_BIT> max_pos[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_pos complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS PIPELINE II=1
@@ -1593,11 +1433,11 @@ void LastPwcvMatrixVectorUnitT(
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            ap_int<PE*OUT_BIT> out_buf;
-            for (ap_uint<8> p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = acc[p];
-            }
+//            ap_int<PE*OUT_BIT> out_buf;
+//            for (ap_uint<8> p = 0; p < PE; ++p) {
+//#pragma HLS UNROLL
+//                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = acc[p];
+//            }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
             for (unsigned p = 0; p < PE; ++p) {
@@ -1607,7 +1447,7 @@ void LastPwcvMatrixVectorUnitT(
             }
             cout << endl;
 #endif
-            out_fm.write(out_buf);
+            //out_fm.write(out_buf);
 #if MVAU_DEBUG
             cout << hex << "out_but: " << out_buf << endl;
 #endif
@@ -1615,6 +1455,27 @@ void LastPwcvMatrixVectorUnitT(
             if (out_fold_cnt == OUTPUT_FOLE) {
                 out_fold_cnt = 0;
                 tile = 0;
+                for (ap_uint<8> p = 0; p < PE; ++p) {
+#pragma HLS UNROLL
+                    if (max_acc[p] < acc[p]) {
+                        max_acc[p] = acc[p];
+                        max_pos[p] = vect_num;
+                        //cout << "Compare p:" << p << ", vect_num: " << vect_num << ", " << max_acc[p] << " vs " << acc[p] << endl;
+                    }
+                }
+                ++vect_num;
+                if (vect_num == VECT_NUMS) {
+                    ap_int<PE*OUT_BIT> out_buf;
+                    for (ap_uint<8> p = 0; p < PE; ++p) {
+#pragma HLS UNROLL
+                        //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
+                        if (max_acc[p] > m0[p][1]) {
+                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = acc[p];
+                            //cout << p << ": valid!" << endl;
+                        }
+                    }
+                    out_fm.write(out_buf);
+                }
             }
         }
     }

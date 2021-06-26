@@ -5,6 +5,7 @@
 #include "Posenet.h"
 #include "Params.h"
 #include <assert.h>
+#include "Load.h"
 
 
 using namespace std;
@@ -13,10 +14,11 @@ using namespace hls;
 
 
 void PosenetBlockAlpha(
-        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
-        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
-        stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
-        stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
+        stream<infm_T> &in,        stream<outfm_T> &out,
+        stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        wgt1_T wgt1[WGT_SIZE1][POSE_PE1],  wgt2_T wgt2[WGT_SIZE2],           wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
+        bias1_pe_T bias1[BIAS_M0_SIZE1],   bias2_pe_T bias2[BIAS_M0_SIZE2],  bias3_pe_T bias3[BIAS_M0_SIZE3],
+        m0_1pe_T m0_1[BIAS_M0_SIZE1],      m0_2pe_T m0_2[BIAS_M0_SIZE2],     m0_3pe_T m0_3[BIAS_M0_SIZE3],
         ap_uint<8> ROW1,       ap_uint<8> ROW2,        ap_uint<8> ROW3,
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
@@ -120,55 +122,140 @@ void PosenetBlockAlpha(
 
 
 void PosenetAlpha(
-        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
-        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
-        stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
-        stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
-        stream<inst_T> &insts
+        stream<infm_T> &in,       stream<outfm_T> &out,
+        stream<addfm_T> &add_in,  stream<addfm_T> &add_out,
+        wgt16_T * weight,  bias8_T* bias,  m16_T* m0
 ) {
+
 #pragma HLS INTERFACE axis port=in
 #pragma HLS INTERFACE axis port=out
 #pragma HLS INTERFACE axis port=add_in
 #pragma HLS INTERFACE axis port=add_out
-#pragma HLS INTERFACE axis port=wgt1
-#pragma HLS INTERFACE axis port=wgt2
-#pragma HLS INTERFACE axis port=wgt3
-#pragma HLS INTERFACE axis port=bias1
-#pragma HLS INTERFACE axis port=bias2
-#pragma HLS INTERFACE axis port=bias3
-#pragma HLS INTERFACE axis port=m0_1
-#pragma HLS INTERFACE axis port=m0_2
-#pragma HLS INTERFACE axis port=m0_3
-#pragma HLS INTERFACE axis port=insts
+#pragma HLS INTERFACE m_axi depth=14500 port=weight offset=slave bundle=wt
+#pragma HLS INTERFACE m_axi depth=994 port=bias offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=497 port=m0 offset=slave bundle=bm
 
-	//assert(
-	//           (ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==10 && CH_NUMS2==10 && INCH_NUMS3==10 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
-	//        || (ROW1==128 && ROW2==128 && ROW3==64 && COL1==96 && COL2==96 && COL3==48 && INCH_NUMS1==1 && OUTCH_NUMS1==1 && CH_NUMS2==1 && INCH_NUMS3==1 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==1 && NEXT_ADD==1)
-    //        || (ROW1==64 && ROW2==64 && ROW3==32 && COL1==48 && COL2==48 && COL3==24 && INCH_NUMS1==1 && OUTCH_NUMS1==2 && CH_NUMS2==2 && INCH_NUMS3==2 && OUTCH_NUMS3==1 && STRIDE==2 && IS_ADD==0 && NEXT_ADD==1)
-	//        );
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_ping[WGT_SIZE1][POSE_PE1];
+#pragma HLS RESOURCE variable=wgt1_ping core=RAM_1P_BRAM
 
-	inst_T raw_inst = insts.read();
-    ap_uint<8> ROW1 = raw_inst.range(31,24);
-    ap_uint<8> COL1 = raw_inst.range(23,16);
-    ap_uint<4> INCH_NUMS1 = raw_inst.range(15,12);
-    ap_uint<4> CH_NUMS2   = raw_inst.range(11,8);
-    ap_uint<4> OUTCH_NUMS3 = raw_inst.range(7,4);
-    ap_uint<2> STRIDE = raw_inst.range(3,2);
-    ap_uint<1> IS_ADD = raw_inst.range(1,1);
-    ap_uint<1> NEXT_ADD = raw_inst.range(0,0);
+    ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_ping[WGT_SIZE2];
+#pragma HLS RESOURCE variable=wgt2_ping core=RAM_1P_BRAM
 
-    ap_uint<8> ROW2 = ROW1;
-    ap_uint<8> COL2 = COL1;
-    ap_uint<8> ROW3 = ROW1/STRIDE;
-    ap_uint<8> COL3 = COL1/STRIDE;
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_ping[WGT_SIZE3][POSE_PE1];
+#pragma HLS RESOURCE variable=wgt3_ping core=RAM_1P_BRAM
 
-    PosenetBlockAlpha(in, out, add_in, add_out,
-                      wgt1, wgt2, wgt3,
-                      bias1, bias2, bias3,
-                      m0_1, m0_2, m0_3,
-                      ROW1, ROW2, ROW3, COL1, COL2, COL3,
-                      INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
-                      STRIDE, IS_ADD, NEXT_ADD);
+    ap_int<POSE_PE1*POSE_BIAS_BIT> bias1_ping[BIAS_M0_SIZE1];
+#pragma HLS RESOURCE variable=bias1_ping core=RAM_1P_BRAM
+
+    ap_int<POSE_PE2*POSE_BIAS_BIT> bias2_ping[BIAS_M0_SIZE2];
+#pragma HLS RESOURCE variable=bias2_ping core=RAM_1P_BRAM
+
+    ap_int<POSE_PE3*POSE_BIAS_BIT> bias3_ping[BIAS_M0_SIZE3];
+#pragma HLS RESOURCE variable=bias3_ping core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE1*POSE_M0_BIT>  m0_1_ping[BIAS_M0_SIZE1];
+#pragma HLS RESOURCE variable=m0_1_ping core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE2*POSE_M0_BIT>  m0_2_ping[BIAS_M0_SIZE2];
+#pragma HLS RESOURCE variable=m0_2_ping core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE3*POSE_M0_BIT>  m0_3_ping[BIAS_M0_SIZE3];
+#pragma HLS RESOURCE variable=m0_3_ping core=RAM_1P_BRAM
+
+
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_pong[WGT_SIZE1][POSE_PE1];
+#pragma HLS RESOURCE variable=wgt1_pong core=RAM_1P_BRAM
+
+    ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_pong[WGT_SIZE2];
+#pragma HLS RESOURCE variable=wgt2_pong core=RAM_1P_BRAM
+
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_pong[WGT_SIZE3][POSE_PE1];
+#pragma HLS RESOURCE variable=wgt3_pong core=RAM_1P_BRAM
+
+    ap_int<POSE_PE1*POSE_BIAS_BIT> bias1_pong[BIAS_M0_SIZE1];
+#pragma HLS RESOURCE variable=bias1_pong core=RAM_1P_BRAM
+
+    ap_int<POSE_PE2*POSE_BIAS_BIT> bias2_pong[BIAS_M0_SIZE2];
+#pragma HLS RESOURCE variable=bias2_pong core=RAM_1P_BRAM
+
+    ap_int<POSE_PE3*POSE_BIAS_BIT> bias3_pong[BIAS_M0_SIZE3];
+#pragma HLS RESOURCE variable=bias3_pong core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE1*POSE_M0_BIT>  m0_1_pong[BIAS_M0_SIZE1];
+#pragma HLS RESOURCE variable=m0_1_pong core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE2*POSE_M0_BIT>  m0_2_pong[BIAS_M0_SIZE2];
+#pragma HLS RESOURCE variable=m0_2_pong core=RAM_1P_BRAM
+
+    ap_uint<POSE_PE3*POSE_M0_BIT>  m0_3_pong[BIAS_M0_SIZE3];
+#pragma HLS RESOURCE variable=m0_3_pong core=RAM_1P_BRAM
+
+
+    for (unsigned iter_block = 0; iter_block < 16; ++iter_block) {
+        ap_uint<8> ROW1 = config[iter_block].ih;
+        ap_uint<8> ROW2 = config[iter_block].ih;
+        ap_uint<8> ROW3 = config[iter_block].ih / config[iter_block].s;
+        ap_uint<8> COL1 = config[iter_block].iw;
+        ap_uint<8> COL2 = config[iter_block].iw;
+        ap_uint<8> COL3 = config[iter_block].iw / config[iter_block].s;
+        ap_uint<4> INCH_NUMS1 = config[iter_block].ic_nums1;
+        ap_uint<4> OUTCH_NUMS1 = config[iter_block].ic_nums2;
+        ap_uint<4> CH_NUMS2 = config[iter_block].ic_nums2;
+        ap_uint<4> INCH_NUMS3 = config[iter_block].ic_nums2;
+        ap_uint<4> OUTCH_NUMS3 = config[iter_block].oc_nums3;
+        ap_uint<2> STRIDE = config[iter_block].s;
+        ap_uint<1> IS_ADD = config[iter_block].is_add;
+        ap_uint<1> NEXT_ADD = config[iter_block].next_add;
+
+        //TODO: Load ping
+        LoadWgt1(weight, wgt1_ping, 0);
+        LoadBias1(bias, bias1_ping, 0);
+        LoadM1(m0, m0_1_ping, 0);
+        LoadWgt2(weight, wgt2_ping, 0);
+        LoadBias2(bias, bias2_ping, 0);
+        LoadM2(m0, m0_2_ping, 0);
+        LoadWgt3(weight, wgt3_ping, 0);
+        LoadBias3(bias, bias3_ping, 0);
+        LoadM3(m0, m0_3_ping, 0);
+        if (iter_block % 2 == 0) {
+            PosenetBlockAlpha(in, out, add_in, add_out,
+                              wgt1_ping, wgt2_ping, wgt3_ping,
+                              bias1_ping, bias2_ping, bias3_ping,
+                              m0_1_ping, m0_2_ping, m0_3_ping,
+                              ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                              INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+                              STRIDE, IS_ADD, NEXT_ADD);
+            //TODO: Load pong
+            LoadWgt1(weight, wgt1_pong, iter_block);
+            LoadBias1(bias, bias1_pong, iter_block);
+            LoadM1(m0, m0_1_pong, iter_block);
+            LoadWgt2(weight, wgt2_pong, iter_block);
+            LoadBias2(bias, bias2_pong, iter_block);
+            LoadM2(m0, m0_2_pong, iter_block);
+            LoadWgt3(weight, wgt3_pong, iter_block);
+            LoadBias3(bias, bias3_pong, iter_block);
+            LoadM3(m0, m0_3_pong, iter_block);
+
+        } else {
+            PosenetBlockAlpha(in, out, add_in, add_out,
+                              wgt1_pong, wgt2_pong, wgt3_pong,
+                              bias1_pong, bias2_pong, bias3_pong,
+                              m0_1_pong, m0_2_pong, m0_3_pong,
+                              ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                              INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+                              STRIDE, IS_ADD, NEXT_ADD);
+            //TODO: Load ping
+            LoadWgt1(weight, wgt1_ping, iter_block);
+            LoadBias1(bias, bias1_ping, iter_block);
+            LoadM1(m0, m0_1_ping, iter_block);
+            LoadWgt2(weight, wgt2_ping, iter_block);
+            LoadBias2(bias, bias2_ping, iter_block);
+            LoadM2(m0, m0_2_ping, iter_block);
+            LoadWgt3(weight, wgt3_ping, iter_block);
+            LoadBias3(bias, bias3_ping, iter_block);
+            LoadM3(m0, m0_3_ping, iter_block);
+        }
+    }
 
 }
 
@@ -320,7 +407,7 @@ void PosenetBeta(
 
 
 void PosenetDecv(
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * POSE_OUT_BIT>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -356,12 +443,16 @@ void PosenetDecv(
 #pragma HLS ARRAY_PARTITION variable=pwcv7_bias complete dim=1
 #pragma HLS ARRAY_PARTITION variable=pwcv7_m0   complete dim=1
 
+    stream<ap_int<POSE_PWCV0_INCH*POSE_OUT_BIT>> pw0_in("pw0_in");
+#pragma HLS RESOURCE variable=pw0_in core=FIFO_SRL
+    StreamingDataWidthConverter_BatchT<POSE_IN_CH*POSE_IN_BIT, POSE_PWCV0_INCH*POSE_IN_BIT, 8*6*10>(in, pw0_in);
+
     stream<ap_int<POSE_PWCV0_OUTCH*POSE_OUT_BIT>> pw0_out("pw0_out");
 #pragma HLS RESOURCE variable=pw0_out core=FIFO_SRL
 
     PwConvActLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV0_SIMD,POSE_PWCV0_PE,16,WGT_PWCV0_SIZE,BIAS_M0_PWCV0_SIZE>
-            (in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
+            (pw0_in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
 #if 0
     cout << dec << "pw0_out size: " << pw0_out.size() << endl;
     ofstream fpdecvpw0("..\\Test\\decv_pw0.txt", ios::out);
@@ -492,12 +583,10 @@ void PosenetDecv(
     }
     fpdecvpw6.close();
 #endif
-#if 0
     //TODO:
-    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
+    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,12,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
-#endif
 }
 
 

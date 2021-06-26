@@ -1,7 +1,7 @@
 #pragma once
 #include <ap_int.h>
 #include <hls_stream.h>
-#include <fstream>
+
 
 #define INST_WIDTH              32
 
@@ -168,10 +168,11 @@ typedef ap_int<POSE_INTER_CH*POSE_OUT_BIT>      innerfm_T;
 
 typedef ap_int<POSE_SIMD1*POSE_W_BIT>           wgt1_T;
 typedef ap_int<POSE_SIMD2*POSE_W_BIT>           wgt2_T;
-typedef ap_int<32*POSE_W_BIT>                   wgt32_T;
-typedef ap_int<POSE_BIAS_BIT>                   bias_T;
+typedef ap_int<POSE_SIMD3*POSE_W_BIT>           wgt3_T;
+typedef ap_int<16*POSE_W_BIT>                   wgt16_T;
+typedef ap_int<8*POSE_BIAS_BIT>                 bias8_T;
 typedef ap_int<POSE_MUL_BIT>                    mul_T;
-typedef ap_uint<POSE_M0_BIT>                    m0_T;
+typedef ap_uint<16*POSE_M0_BIT>                 m16_T;
 
 typedef ap_int<POSE_PE1*POSE_SIMD1*POSE_W_BIT>  wgt1_pe_T;
 typedef ap_int<POSE_PE2*POSE_SIMD2*POSE_W_BIT>  wgt2_pe_T;
@@ -199,9 +200,49 @@ struct block
     int s, is_add, next_add;
 };
 
+
 struct parm
 {
     char name[10];
     int w1, w2, w3;
     int b1, b2, b3;
+};
+
+
+static block config[16] = {
+        { "blk1",  128,96, 1,1,1,   2,0,1 },
+        { "blk2",  64,48,  1,2,1,   1,1,0 },
+        { "blk3",  64,48,  1,2,1,   2,0,1 },
+        { "blk4",  32,24,  1,2,1,   1,1,1 },
+        { "blk5",  32,24,  1,2,1,   1,1,0 },
+        { "blk6",  32,24,  1,2,2,   2,0,1 },
+        { "blk7",  16,12,  2,4,2,   1,1,1 },
+        { "blk8",  16,12,  2,4,2,   1,1,1 },
+        { "blk9",  16,12,  2,4,2,   1,1,0 },
+        { "blk10", 16,12,  2,4,3,   1,0,1 },
+        { "blk11", 16,12,  3,6,3,   1,1,1 },
+        { "blk12", 16,12,  3,6,3,   1,1,0 },
+        { "blk13", 16,12,  3,6,5,   2,0,1 },
+        { "blk14", 8,6,    5,10,5,  1,1,1 },
+        { "blk15", 8,6,    5,10,5,  1,1,0 },
+        { "blk16", 8,6,    5,10,10, 1,0,0 }
+};
+
+static parm parm_size[16] = {
+        { "blk1",  0,768,1200,           0,48,96 },
+        { "blk2",  1968,3504,4368,       112,208,304 },
+        { "blk3",  5904,7440,8304,       320,416,512 },
+        { "blk4",  9840,11376,12240,     528,624,720 },
+        { "blk5",  13776,15312,16176,    736,832,928 },
+        { "blk6",  17712,19248,20112,    944,1040,1136 },
+        { "blk7",  23184,29328,31056,    1168,1360,1552 },
+        { "blk8",  37200,43344,45072,    1584,1776,1968 },
+        { "blk9",  51216,57360,59088,    2000,2192,2384 },
+        { "blk10", 65232,71376,73104,    2416,2608,2800 },
+        { "blk11", 82320,96144,98736,    2848,3136,3424 },
+        { "blk12", 112560,126384,128976, 3472,3760,4048 },
+        { "blk13", 142800,156624,159216, 4096,4384,4672 },
+        { "blk14", 182256,220656,224976, 4752,5232,5712 },
+        { "blk15", 263376,301776,306096, 5792,6272,6752 },
+        { "blk16", 344496,382896,387216, 6832,7312,7792 }
 };

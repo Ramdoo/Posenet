@@ -15,10 +15,11 @@
 #include "Posenet.h"
 extern
 void PosenetBlockAlpha(
-        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
-        stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
-        stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
-        stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
+        stream<infm_T> &in,        stream<outfm_T> &out,
+        stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        wgt1_T wgt1[WGT_SIZE1][POSE_PE1],  wgt2_T wgt2[WGT_SIZE2],           wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
+        bias1_pe_T bias1[BIAS_M0_SIZE1],   bias2_pe_T bias2[BIAS_M0_SIZE2],  bias3_pe_T bias3[BIAS_M0_SIZE3],
+        m0_1pe_T m0_1[BIAS_M0_SIZE1],       m0_2pe_T m0_2[BIAS_M0_SIZE2],    m0_3pe_T m0_3[BIAS_M0_SIZE3],
         ap_uint<8> ROW1,       ap_uint<8> ROW2,        ap_uint<8> ROW3,
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
@@ -31,29 +32,29 @@ extern void PosenetHead(
 );
 
 extern void PosenetDecv(
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * POSE_OUT_BIT>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
 );
 
-static block config[16] = {
-        { "blk1",  128,96, 1,1,1,   2,0,1 },
-        { "blk2",  64,48,  1,2,1,   1,1,0 },
-        { "blk3",  64,48,  1,2,1,   2,0,1 },
-        { "blk4",  32,24,  1,2,1,   1,1,1 },
-        { "blk5",  32,24,  1,2,1,   1,1,0 },
-        { "blk6",  32,24,  1,2,2,   2,0,1 },
-        { "blk7",  16,12,  2,4,2,   1,1,1 },
-        { "blk8",  16,12,  2,4,2,   1,1,1 },
-        { "blk9",  16,12,  2,4,2,   1,1,0 },
-        { "blk10", 16,12,  2,4,3,   1,0,1 },
-        { "blk11", 16,12,  3,6,3,   1,1,1 },
-        { "blk12", 16,12,  3,6,3,   1,1,0 },
-        { "blk13", 16,12,  3,6,5,   2,0,1 },
-        { "blk14", 8,6,    5,10,5,  1,1,1 },
-        { "blk15", 8,6,    5,10,5,  1,1,0 },
-        { "blk16", 8,6,    5,10,10, 1,0,0 }
-};
+//static block config[16] = {
+//        { "blk1",  128,96, 1,1,1,   2,0,1 },
+//        { "blk2",  64,48,  1,2,1,   1,1,0 },
+//        { "blk3",  64,48,  1,2,1,   2,0,1 },
+//        { "blk4",  32,24,  1,2,1,   1,1,1 },
+//        { "blk5",  32,24,  1,2,1,   1,1,0 },
+//        { "blk6",  32,24,  1,2,2,   2,0,1 },
+//        { "blk7",  16,12,  2,4,2,   1,1,1 },
+//        { "blk8",  16,12,  2,4,2,   1,1,1 },
+//        { "blk9",  16,12,  2,4,2,   1,1,0 },
+//        { "blk10", 16,12,  2,4,3,   1,0,1 },
+//        { "blk11", 16,12,  3,6,3,   1,1,1 },
+//        { "blk12", 16,12,  3,6,3,   1,1,0 },
+//        { "blk13", 16,12,  3,6,5,   2,0,1 },
+//        { "blk14", 8,6,    5,10,5,  1,1,1 },
+//        { "blk15", 8,6,    5,10,5,  1,1,0 },
+//        { "blk16", 8,6,    5,10,10, 1,0,0 }
+//};
 
-static parm parm_size[16] = {
+static parm parm_size_debug[16] = {
         { "blk1",  0,768,1200,           0,48,96 },
         { "blk2",  1968,3504,4368,       112,208,304 },
         { "blk3",  5904,7440,8304,       320,416,512 },
@@ -240,7 +241,7 @@ int main() {
 
     for (int i = 0; i < 16; i=i+2) {
 
-        stream<wgt1_pe_T> wgt1("wgt1");
+        wgt1_T wgt1[WGT_SIZE1][POSE_PE1];
         ofstream fpblk1wgt1("..\\Test\\blk1wgt1.txt", ios::out);
         if (!fpblk1wgt1)
             cout << "no such file" << endl;
@@ -250,18 +251,17 @@ int main() {
                 ap_int<POSE_SIMD1*POSE_W_BIT> temp_wgt_simd;
                 for (int p = 0; p < POSE_SIMD1; ++p) {
                     temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                        = WEIGHT[parm_size[i].w1+rep*POSE_SIMD1*POSE_PE1 + pe*POSE_SIMD1 + p];
+                        = WEIGHT[parm_size_debug[i].w1 + rep * POSE_SIMD1 * POSE_PE1 + pe * POSE_SIMD1 + p];
                 }
                 cout << hex;
-                //fpblk1wgt1 << temp_wgt_simd << "  " << endl;
+                wgt1[rep][pe] = temp_wgt_simd;
                 temp_wgt((pe+1)*POSE_SIMD1*POSE_W_BIT-1, pe*POSE_SIMD1*POSE_W_BIT) = temp_wgt_simd;
             }
             fpblk1wgt1 << temp_wgt << "  " << endl;
-            wgt1.write(temp_wgt);
         }
         fpblk1wgt1.close();
 
-        stream<wgt2_T> wgt2("wgt2");
+        wgt2_T wgt2[WGT_SIZE2];
         ofstream fpblk1wgt2("..\\Test\\blk1wgt2.txt", ios::out);
         if (!fpblk1wgt2)
             cout << "no such file" << endl;
@@ -269,15 +269,16 @@ int main() {
             ap_int<POSE_SIMD2*POSE_W_BIT> temp_wgt_simd;
             for (int p = 0; p < POSE_SIMD2; ++p) {
                 temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                    = WEIGHT[parm_size[i].w2+rep*POSE_SIMD2 + p];
+                    = WEIGHT[parm_size_debug[i].w2 + rep * POSE_SIMD2 + p];
             }
             cout << hex;
             fpblk1wgt2 << temp_wgt_simd << "  " << endl;
-            wgt2.write(temp_wgt_simd);
+            wgt2[rep] = temp_wgt_simd;
         }
         fpblk1wgt2.close();
 
-        stream<wgt3_pe_T> wgt3("wgt3");
+        //stream<wgt3_pe_T> wgt3("wgt3");
+        wgt3_T wgt3[WGT_SIZE3][POSE_PE3];
         ofstream fpblk1wgt3("..\\Test\\blk1wgt3.txt", ios::out);
         if (!fpblk1wgt3)
             cout << "no such file" << endl;
@@ -287,19 +288,17 @@ int main() {
                 ap_int<POSE_SIMD3*POSE_W_BIT> temp_wgt_simd;
                 for (int p = 0; p < POSE_SIMD3; ++p) {
                     temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                        = WEIGHT[parm_size[i].w3+rep*POSE_SIMD3*POSE_PE3 + pe*POSE_SIMD3 + p];
+                        = WEIGHT[parm_size_debug[i].w3 + rep * POSE_SIMD3 * POSE_PE3 + pe * POSE_SIMD3 + p];
                 }
                 cout << hex;
                 fpblk1wgt3 << temp_wgt_simd << "  " << endl;
-                temp_wgt((pe+1)*POSE_SIMD3*POSE_W_BIT-1, pe*POSE_SIMD3*POSE_W_BIT) = temp_wgt_simd;
+                wgt3[rep][pe] = temp_wgt_simd;
             }
-            //fpblk1wgt3 << temp_wgt << "  " << endl;
-            wgt3.write(temp_wgt);
         }
         fpblk1wgt3.close();
 
 
-        stream<bias1_pe_T> bias1("bias1");
+        bias1_pe_T bias1[BIAS_M0_SIZE1];
         ofstream fpblk1bias1("..\\Test\\blk1bias1.txt", ios::out);
         if (!fpblk1bias1)
             cout << "no such file" << endl;
@@ -307,16 +306,16 @@ int main() {
             bias1_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i].b1+rep*POSE_PE1 + p];
+                    = BIAS[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
                 cout << hex;
                 //fpblk1bias1 << temp_bias << "  " << endl;
             }
             fpblk1bias1 << temp_bias << "  " << endl;
-            bias1.write(temp_bias);
+            bias1[rep] = temp_bias;
         }
         fpblk1bias1.close();
 
-        stream<bias2_pe_T> bias2("bias2");
+        bias2_pe_T bias2[BIAS_M0_SIZE2];
         ofstream fpblk1bias2("..\\Test\\blk1bias2.txt", ios::out);
         if (!fpblk1bias2)
             cout << "no such file" << endl;
@@ -324,16 +323,16 @@ int main() {
             bias2_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i].b2+rep*POSE_PE2 + p];
+                    = BIAS[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
                 cout << hex;
                 //fpblk1bias2 << temp_bias << "  " << endl;
             }
             fpblk1bias2 << temp_bias << "  " << endl;
-            bias2.write(temp_bias);
+            bias2[rep] = temp_bias;
         }
         fpblk1bias2.close();
 
-        stream<bias3_pe_T> bias3("bias3");
+        bias3_pe_T bias3[BIAS_M0_SIZE3];
         ofstream fpblk1bias3("..\\Test\\blk1bias3.txt", ios::out);
         if (!fpblk1bias3)
             cout << "no such file" << endl;
@@ -341,16 +340,16 @@ int main() {
             bias3_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i].b3+rep*POSE_PE3 + p];
+                    = BIAS[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
                 cout << hex;
                 //fpblk1bias3 << temp_bias << "  " << endl;
             }
             fpblk1bias3 << temp_bias << "  " << endl;
-            bias3.write(temp_bias);
+            bias3[rep] = temp_bias;
         }
         fpblk1bias3.close();
 
-        stream<m0_1pe_T> m0_1("m0_1");
+        m0_1pe_T m0_1[BIAS_M0_SIZE1];
         ofstream fpblk1m1("..\\Test\\blk1m1.txt", ios::out);
         if (!fpblk1m1)
             cout << "no such file" << endl;
@@ -358,15 +357,15 @@ int main() {
             m0_1pe_T temp_m;
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i].b1+rep*POSE_PE1 + p];
+                    = M0[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
                 cout << hex;
             }
             fpblk1m1 << temp_m << "  " << endl;
-            m0_1.write(temp_m);
+            m0_1[rep] = temp_m;
         }
         fpblk1m1.close();
 
-        stream<m0_2pe_T> m0_2("m0_2");
+        m0_2pe_T m0_2[BIAS_M0_SIZE2];
         ofstream fpblk1m2("..\\Test\\blk1m2.txt", ios::out);
         if (!fpblk1m2)
             cout << "no such file" << endl;
@@ -374,15 +373,15 @@ int main() {
             m0_2pe_T temp_m;
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i].b2+rep*POSE_PE2 + p];
+                    = M0[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
                 cout << hex;
             }
             fpblk1m2 << temp_m << "  " << endl;
-            m0_2.write(temp_m);
+            m0_2[rep] = temp_m;
         }
         fpblk1m2.close();
 
-        stream<m0_3pe_T> m0_3("m0_3");
+        m0_3pe_T m0_3[BIAS_M0_SIZE3];
         ofstream fpblk1m3("..\\Test\\blk1m3.txt", ios::out);
         if (!fpblk1m3)
             cout << "no such file" << endl;
@@ -390,11 +389,11 @@ int main() {
             m0_3pe_T temp_m;
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i].b3+rep*POSE_PE3 + p];
+                    = M0[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
                 cout << hex;
             }
             fpblk1m3 << temp_m << "  " << endl;
-            m0_3.write(temp_m);
+            m0_3[rep] = temp_m;
         }
         fpblk1m3.close();
 
@@ -421,7 +420,7 @@ int main() {
                           STRIDE, IS_ADD, NEXT_ADD);
 
 
-        stream<wgt1_pe_T> wgt4("wgt4");
+        wgt1_T wgt4[WGT_SIZE1][POSE_PE1];
         ofstream fpblk2wgt1("..\\Test\\blk2wgt1.txt", ios::out);
         if (!fpblk2wgt1)
             cout << "no such file" << endl;
@@ -431,18 +430,18 @@ int main() {
                 ap_int<POSE_SIMD1*POSE_W_BIT> temp_wgt_simd;
                 for (int p = 0; p < POSE_SIMD1; ++p) {
                     temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                        = WEIGHT[parm_size[i+1].w1+rep*POSE_SIMD1*POSE_PE1 + pe*POSE_SIMD1 + p];
+                        = WEIGHT[parm_size_debug[i + 1].w1 + rep * POSE_SIMD1 * POSE_PE1 + pe * POSE_SIMD1 + p];
                 }
+                wgt4[rep][pe] = temp_wgt_simd;
                 cout << hex;
                 //fpblk1wgt1 << temp_wgt_simd << "  " << endl;
                 temp_wgt((pe+1)*POSE_SIMD1*POSE_W_BIT-1, pe*POSE_SIMD1*POSE_W_BIT) = temp_wgt_simd;
             }
             fpblk2wgt1 << temp_wgt << "  " << endl;
-            wgt4.write(temp_wgt);
         }
         fpblk2wgt1.close();
 
-        stream<wgt2_T> wgt5("wgt5");
+        wgt2_T wgt5[WGT_SIZE2];
         ofstream fpblk2wgt2("..\\Test\\blk2wgt2.txt", ios::out);
         if (!fpblk2wgt2)
             cout << "no such file" << endl;
@@ -450,15 +449,15 @@ int main() {
             ap_int<POSE_SIMD2*POSE_W_BIT> temp_wgt_simd;
             for (int p = 0; p < POSE_SIMD2; ++p) {
                 temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                    = WEIGHT[parm_size[i+1].w2+rep*POSE_SIMD2 + p];
+                    = WEIGHT[parm_size_debug[i + 1].w2 + rep * POSE_SIMD2 + p];
             }
             cout << hex;
             fpblk2wgt1 << temp_wgt_simd << "  " << endl;
-            wgt5.write(temp_wgt_simd);
+            wgt5[rep] = temp_wgt_simd;
         }
         fpblk2wgt2.close();
 
-        stream<wgt3_pe_T> wgt6("wgt6");
+        wgt3_T wgt6[WGT_SIZE3][POSE_PE3];
         ofstream fpblk2wgt3("..\\Test\\blk2wgt3.txt", ios::out);
         if (!fpblk2wgt3)
             cout << "no such file" << endl;
@@ -468,18 +467,17 @@ int main() {
                 ap_int<POSE_SIMD3*POSE_W_BIT> temp_wgt_simd;
                 for (int p = 0; p < POSE_SIMD3; ++p) {
                     temp_wgt_simd((p+1)*POSE_W_BIT-1, p*POSE_W_BIT)
-                        = WEIGHT[parm_size[i+1].w3+rep*POSE_SIMD3*POSE_PE3 + pe*POSE_SIMD3 + p];
+                        = WEIGHT[parm_size_debug[i + 1].w3 + rep * POSE_SIMD3 * POSE_PE3 + pe * POSE_SIMD3 + p];
                 }
+                wgt6[rep][pe] = temp_wgt_simd;
                 cout << hex;
                 fpblk2wgt3 << temp_wgt_simd << "  " << endl;
                 temp_wgt((pe+1)*POSE_SIMD3*POSE_W_BIT-1, pe*POSE_SIMD3*POSE_W_BIT) = temp_wgt_simd;
             }
-            //fpblk1wgt3 << temp_wgt << "  " << endl;
-            wgt6.write(temp_wgt);
         }
         fpblk2wgt3.close();
 
-        stream<bias1_pe_T> bias4("bias4");
+        bias1_pe_T bias4[BIAS_M0_SIZE1];
         ofstream fpblk2bias1("..\\Test\\blk2bias1.txt", ios::out);
         if (!fpblk2bias1)
             cout << "no such file" << endl;
@@ -487,16 +485,16 @@ int main() {
             bias1_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i+1].b1+rep*POSE_PE1 + p];
+                    = BIAS[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
                 cout << hex;
                 //fpblk1bias1 << temp_bias << "  " << endl;
             }
             fpblk2bias1 << temp_bias << "  " << endl;
-            bias4.write(temp_bias);
+            bias4[rep] = temp_bias;
         }
         fpblk2bias1.close();
 
-        stream<bias2_pe_T> bias5("bias5");
+        bias2_pe_T bias5[BIAS_M0_SIZE2];
         ofstream fpblk2bias2("..\\Test\\blk2bias2.txt", ios::out);
         if (!fpblk2bias2)
             cout << "no such file" << endl;
@@ -504,16 +502,16 @@ int main() {
             bias2_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i+1].b2+rep*POSE_PE2 + p];
+                    = BIAS[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
                 cout << hex;
                 //fpblk1bias2 << temp_bias << "  " << endl;
             }
             fpblk2bias2 << temp_bias << "  " << endl;
-            bias5.write(temp_bias);
+            bias5[rep] = temp_bias;
         }
         fpblk2bias2.close();
 
-        stream<bias3_pe_T> bias6("bias6");
+        bias3_pe_T bias6[BIAS_M0_SIZE3];
         ofstream fpblk2bias3("..\\Test\\blk2bias3.txt", ios::out);
         if (!fpblk2bias3)
             cout << "no such file" << endl;
@@ -521,16 +519,16 @@ int main() {
             bias3_pe_T temp_bias;
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
-                    = BIAS[parm_size[i+1].b3+rep*POSE_PE3 + p];
+                    = BIAS[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
                 cout << hex;
                 //fpblk1bias3 << temp_bias << "  " << endl;
             }
             fpblk2bias3 << temp_bias << "  " << endl;
-            bias6.write(temp_bias);
+            bias6[rep] = temp_bias;
         }
         fpblk2bias3.close();
 
-        stream<m0_1pe_T> m0_4("m0_4");
+        m0_1pe_T m0_4[BIAS_M0_SIZE1];
         ofstream fpblk2m1("..\\Test\\blk2m1.txt", ios::out);
         if (!fpblk2m1)
             cout << "no such file" << endl;
@@ -538,15 +536,15 @@ int main() {
             m0_1pe_T temp_m;
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i+1].b1+rep*POSE_PE1 + p];
+                    = M0[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
                 cout << hex;
             }
             fpblk2m1 << temp_m << "  " << endl;
-            m0_4.write(temp_m);
+            m0_4[rep] = temp_m;
         }
         fpblk2m1.close();
 
-        stream<m0_2pe_T> m0_5("m0_5");
+        m0_2pe_T m0_5[BIAS_M0_SIZE2];
         ofstream fpblk2m2("..\\Test\\blk2m2.txt", ios::out);
         if (!fpblk2m2)
             cout << "no such file" << endl;
@@ -554,15 +552,15 @@ int main() {
             m0_2pe_T temp_m;
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i+1].b2+rep*POSE_PE2 + p];
+                    = M0[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
                 cout << hex;
             }
             fpblk2m2 << temp_m << "  " << endl;
-            m0_5.write(temp_m);
+            m0_5[rep] = temp_m;
         }
         fpblk2m2.close();
 
-        stream<m0_3pe_T> m0_6("m0_6");
+        m0_3pe_T m0_6[BIAS_M0_SIZE3];
         ofstream fpblk2m3("..\\Test\\blk2m3.txt", ios::out);
         if (!fpblk2m3)
             cout << "no such file" << endl;
@@ -570,11 +568,11 @@ int main() {
             m0_3pe_T temp_m;
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
-                    = M0[parm_size[i+1].b3+rep*POSE_PE3 + p];
+                    = M0[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
                 cout << hex;
             }
             fpblk2m3 << temp_m << "  " << endl;
-            m0_6.write(temp_m);
+            m0_6[rep] = temp_m;
         }
         fpblk2m3.close();
 
@@ -628,10 +626,8 @@ int main() {
     free(BIAS);
     free(M0);
 
-    stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> decv_in("decv_in");
-    stream<ap_int<POSE_CV7_OUTCH*POSE_IN_BIT>> out("out");
-    StreamingDataWidthConverter_BatchT<POSE_OUT_CH*POSE_IN_BIT, POSE_PWCV0_INCH*POSE_IN_BIT, 8*6*10>(blk_in, decv_in);
-    PosenetDecv(decv_in, out);
+    stream<ap_int<POSE_CV7_OUTCH*12>> out("out");
+    PosenetDecv(blk_in, out);
 
 }
 

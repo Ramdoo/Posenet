@@ -8,7 +8,7 @@
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
+//通用的函数， 将尺寸大小和通道数作为入参传�?
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -26,9 +26,9 @@ template<
 void DwConvActLayerAlpha(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
-        stream<ap_int<SIMD*W_BIT>> &weights,
-        stream<ap_int<PE*BIAS_BIT>> &bias,
-        stream<ap_uint<PE*M0_BIT>> &m0,
+        ap_int<SIMD*W_BIT> weights[WGT_SIZE2],
+        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE2],
+        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE2],
         const unsigned IN_ROW,
         const unsigned IN_COL,
         const unsigned S,
@@ -89,8 +89,8 @@ void DwConvActLayerAlpha(
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
-//在通用的block中，作为前面的pwcv， 不处理shortcut
+//通用的函数， 将尺寸大小和通道数作为入参传�?
+//在�?�用的block中，作为前面的pwcv�? 不处理shortcut
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -111,9 +111,9 @@ template<
 void PwConvActLayer(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
-        stream<ap_int<PE*SIMD*W_BIT>> &weights,
-        stream<ap_int<PE*BIAS_BIT>> &bias,
-        stream<ap_uint<PE*M0_BIT>> &m0,
+        ap_int<SIMD*W_BIT> weights[WGT_SIZE1][PE],
+        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE1],
+        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE1],
         const unsigned IN_ROW,
         const unsigned IN_COL,
         const unsigned IN_CH_NUMS,
@@ -135,8 +135,8 @@ void PwConvActLayer(
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传入
-//在通用的block中，作为后面的pwcv， 需处理是否有shortcut， 有则add
+//通用的函数， 将尺寸大小和通道数作为入参传�?
+//在�?�用的block中，作为后面的pwcv�? �?处理是否有shortcut�? 有则add
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -156,9 +156,9 @@ void PwConvAddLayer(
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         stream<ap_int<PE*OUT_BIT>> &add_in,
         stream<ap_int<PE*OUT_BIT>> &add_out,
-        stream<ap_int<PE*SIMD*W_BIT>> &weights,
-        stream<ap_int<PE*BIAS_BIT>> &bias,
-        stream<ap_uint<PE*M0_BIT>> &m0,
+        ap_int<SIMD*W_BIT> weights[WGT_SIZE3][POSE_PE3],
+        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE3],
+        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE3],
         const unsigned IN_ROW,
         const unsigned IN_COL,
         const unsigned IN_CH_NUMS,
@@ -182,7 +182,7 @@ void PwConvAddLayer(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -265,7 +265,7 @@ void DwConvLayerT(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -385,7 +385,7 @@ void DeConvLayerT(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -429,7 +429,7 @@ void PwConvLayer3(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -583,11 +583,8 @@ void LastConvLayerT(
 ) {
 #pragma HLS DATAFLOW
 
-
-    const unsigned INTER_ROW = IN_ROW + 2;
-    const unsigned INTER_COL = IN_COL + 2;
-    const unsigned OUT_ROW = (INTER_ROW - K) / S + 1;
-    const unsigned OUT_COL = (INTER_COL - K) / S + 1;
+    const unsigned OUT_ROW = IN_ROW;
+    const unsigned OUT_COL = IN_COL;
 
     stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
     StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, K*K*OUT_ROW*OUT_COL>(in, adj_out);

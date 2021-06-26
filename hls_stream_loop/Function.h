@@ -204,7 +204,15 @@ ap_int<OUT_BIT> ShortcutAddbias(
 
     temp = in + bias;
 
-    res = (temp * m0 + 32768) >> RSHIFT;
+    temp = (temp * m0 + 32768) >> RSHIFT;
+    if (temp > 127) {
+        res = 127;
+    } else if (temp < -128) {
+        res = -128;
+    } else {
+        res = temp;
+    }
+
     if (IS_ADD) {     //Add
         res += add_fm;
     }
