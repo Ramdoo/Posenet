@@ -53,11 +53,11 @@ void StreamingDataWidthConverter_Batch(stream<ap_int<InWidth>> &in,
         // read multiple input words per output word emitted
         // CASSERT_DATAFLOW(OutWidth % InWidth == 0);
         const unsigned int inPerOut = OutWidth / InWidth;
-        const unsigned int totalIters = NumInWords/* * numReps*/;
+        const unsigned int totalIters = NumInWords * inPerOut/* * numReps*/;
         unsigned int i = 0;
         ap_int<OutWidth> eo = 0;
         for (unsigned int t = 0; t < totalIters; t++) {
-#pragma HLS LOOP_TRIPCOUNT min=1636 max=1636
+#pragma HLS LOOP_TRIPCOUNT min=73728 max=73728
 #pragma HLS PIPELINE II = 1
             // read input and shift into output buffer
             ap_int<InWidth> ei = in.read();
@@ -144,3 +144,4 @@ void StreamingDataWidthConverter_BatchT(stream<ap_int<InWidth>> &in,
         }
     }
 }
+

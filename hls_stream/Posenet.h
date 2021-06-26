@@ -1,7 +1,9 @@
 #pragma once
 #include <ap_int.h>
 #include <hls_stream.h>
+#include <fstream>
 
+#define INST_WIDTH              32
 
 #define POSE_IN_CH              16
 #define POSE_OUT_CH             16
@@ -24,9 +26,9 @@
 #define WGT_SIZE1               80*480/POSE_SIMD1/POSE_PE1
 #define WGT_SIZE2               9*480/POSE_SIMD2
 #define WGT_SIZE3               160*480/POSE_SIMD3/POSE_PE3
-#define BIAS_M0_SIZE1               480/POSE_PE1
-#define BIAS_M0_SIZE2               480/POSE_PE2
-#define BIAS_M0_SIZE3               160/POSE_PE3
+#define BIAS_M0_SIZE1           480/POSE_PE1
+#define BIAS_M0_SIZE2           480/POSE_PE2
+#define BIAS_M0_SIZE3           160/POSE_PE3
 
 // ************************************************************************* //
 // head 3 layers
@@ -110,7 +112,7 @@
 #define WGT_PWCV4_SIZE        POSE_PWCV4_INCH*POSE_PWCV4_OUTCH/POSE_PWCV4_SIMD/POSE_PWCV4_PE
 #define BIAS_M0_PWCV4_SIZE    POSE_PWCV4_OUTCH/POSE_PWCV4_PE
 
-#define POSE_DECV5_ROW        34
+#define POSE_DECV5_ROW        32
 #define POSE_DECV5_COL        24
 #define POSE_DECV5_INCH       128
 #define POSE_DECV5_OUTCH      128
@@ -156,8 +158,6 @@
 
 #define INST_WIDTH              32
 
-
-
 // ************************************************************************* //
 // do some typedef
 // ************************************************************************* //
@@ -185,4 +185,23 @@ typedef ap_uint<POSE_PE3*POSE_M0_BIT>           m0_3pe_T;
 typedef ap_int<POSE_INTER_CH*POSE_BIAS_BIT>     bias_dw_T;
 typedef ap_uint<POSE_INTER_CH*POSE_M0_BIT>      m0_dw_T;
 
-typedef ap_int<48*POSE_W_BIT>          wgt_48_T;
+typedef ap_uint<INST_WIDTH>                             inst_T;
+
+
+// ************************************************************************* //
+// config
+// ************************************************************************* //
+struct block
+{
+    char name[10];
+    int ih, iw;
+    int ic_nums1, ic_nums2, oc_nums3;
+    int s, is_add, next_add;
+};
+
+struct parm
+{
+    char name[10];
+    int w1, w2, w3;
+    int b1, b2, b3;
+};

@@ -50,7 +50,6 @@ ap_int<45> SimdMulReuse(
     ap_int<MUL_BIT> res_b = 0;
     ap_int<45> res = 0;
     for (ap_uint<8> p = 0; p < SIMD; ++p) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=16
 #pragma HLS UNROLL
         ap_int<25> temp_wgt_a = ap_int<8>(weights_a( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
         ap_int<25> temp_wgt_b = ap_int<8>(weights_b( (p<<LOG_W_BIT)+(W_BIT-1), (p<<LOG_W_BIT)));
@@ -64,7 +63,7 @@ ap_int<45> SimdMulReuse(
         cout << dec << "dec temp_wgt_a: " << ap_int<8>(temp_wgt_a) << ", dec temp_wgt_b: " << ap_int<8>(temp_wgt_b) << ", dec temp: " << (temp_wgt_a + temp_wgt_b) << endl;
         cout << hex << "mul: " << mul << endl;
 #endif
-        res_a += ap_int<16>(mul(33,18)) + mul(15,15);
+        res_a += ap_int<16>(mul(31,16)) + mul(15,15);
         res_b += ap_int<16>(mul(15,0));
 #if 0
         cout << dec << "    simd temp_wgt_a: " << ap_int<27>(temp_wgt_a) << ", temp_in:" << ap_int<8>(temp_in) << ", mul_a: " << ap_int<16>(mul(33,18)) + mul(15,15)  << hex << ", hex mul_a : " << ap_int<16>(mul(33,18)) + mul(15,15) << endl;

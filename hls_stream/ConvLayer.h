@@ -306,15 +306,75 @@ void DeConvLayerT(
     stream<ap_int<IN_CH*IN_BIT> > deconvpad_out("deconvpad_out");
 #pragma HLS RESOURCE variable=deconvpad_out core=FIFO_SRL
     DilationPaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT>(in, deconvpad_out);
+#if 0
+    cout << dec << "depadding_out size: " << deconvpad_out.size() << endl;
+    ofstream fpdecvde1_depad("..\\Test\\decv_de1_depad.txt", ios::out);
+    if (!fpdecvde1_depad)
+        cout << "no such file" << endl;
+    for (int h = 0; h < 2*IN_ROW; ++h) {
+        for (int w = 0; w < 2*IN_COL; ++w) {
+            ap_int<IN_CH * POSE_IN_BIT> temp = deconvpad_out.read();
+            for (int ch = 0; ch < IN_CH; ++ch) {
+                cout << dec;
+                fpdecvde1_depad << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+            }
+            fpdecvde1_depad << endl;
+        }
+    }
+    fpdecvde1_depad.close();
+#endif
     PaddingT<IN_ROW+IN_ROW, IN_COL+IN_COL, IN_CH, IN_BIT, 1>(deconvpad_out, padding_out);
     const unsigned INTER_ROW = IN_ROW+IN_ROW + 2;
-    const unsigned INTER_COL = IN_COL+IN_ROW + 2;
+    const unsigned INTER_COL = IN_COL+IN_COL + 2;
+
+#if 0
+    cout << dec << "padding_out size: " << padding_out.size() << endl;
+    ofstream fpdecvde1_pad("..\\Test\\decv_de1_pad.txt", ios::out);
+    if (!fpdecvde1_pad)
+        cout << "no such file" << endl;
+    for (int h = 0; h < INTER_ROW; ++h) {
+        for (int w = 0; w < INTER_COL; ++w) {
+            ap_int<IN_CH * POSE_IN_BIT> temp = padding_out.read();
+            for (int ch = 0; ch < IN_CH; ++ch) {
+                cout << dec;
+                fpdecvde1_pad << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
+            }
+            fpdecvde1_pad << endl;
+        }
+    }
+    fpdecvde1_pad.close();
+#endif
 
     //stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
     //StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, INTER_ROW*INTER_COL>(padding_out, adj_out);
 
     stream<ap_int<SIMD*IN_BIT>> swu_out("swu_out");
     SWUT<K,INTER_ROW, INTER_COL,IN_BIT,IN_CH,IN_CH/SIMD,SIMD,LOG2_SIMD,1>(padding_out, swu_out);
+#if 0
+    const unsigned STEPS = ((INTER_COL - K) / 1 + 1) * ((INTER_ROW - K) / 1 + 1);
+    ofstream fpde1swu("..\\Test\\de1swu.txt", ios::out);
+    if (!fpde1swu)
+        cout << "no such file" << endl;
+    for (int step = 0; step < STEPS*IN_CH/SIMD; step++) {
+        //cout << dec << "------ step: " << step << "------" << endl;
+        fpde1swu << dec << "------ step: " << step << "------" << endl;
+        for (int h = 0; h < K ; ++h) {
+            for (int w = 0; w < K; ++w) {
+                fpde1swu << "[";
+                //cout /*<< setw(2+POSE_IN_CH*POSE_IN_BIT/4) */<< hex << swu_out.read() << " ";
+                cout << hex;
+                fpde1swu /*<< setw(2+POSE_IN_CH*POSE_IN_BIT/4) */<< hex << swu_out.read() << " ";
+                //cout << "] ";
+                fpde1swu << "] ";
+            }
+            //cout << endl;
+            fpde1swu << endl;
+        }
+        //cout << "-------------------------" << endl;
+        fpde1swu << "-------------------------" << endl;
+    }
+    fpde1swu.close();
+#endif
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
     DwcvMatrixVectorActUnitT<IN_CH_NUMS*SIMD*K*K, OUT_CH, IN_BIT, IN_CH_NUMS, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE,
@@ -346,7 +406,7 @@ template<
         unsigned WGT_ARRAYSIZE,    //TODO:
         unsigned BIAS_M0_ARRAYSIZE //TODO:
 >
-void PwConvLayerT(
+void PwConvLayer3(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         const ap_int<SIMD*W_BIT> weights[PE][WGT_ARRAYSIZE],
@@ -365,7 +425,6 @@ void PwConvLayerT(
                                 RSHIFT, WGT_ARRAYSIZE, BIAS_M0_ARRAYSIZE, OUT_ROW*OUT_COL>
                             (adj_out, mvau_out, weights, bias, m0);
 
-    //cout << "hcv2 mvau_out size:" << mvau_out.size() << endl;
     StreamingDataWidthConverter_BatchT<PE*IN_BIT, OUT_CH*IN_BIT, OUT_ROW*OUT_COL*OUT_CH/PE>(mvau_out, out);
 }
 
@@ -524,11 +583,8 @@ void LastConvLayerT(
 ) {
 #pragma HLS DATAFLOW
 
-
-    const unsigned INTER_ROW = IN_ROW + 2;
-    const unsigned INTER_COL = IN_COL + 2;
-    const unsigned OUT_ROW = (INTER_ROW - K) / S + 1;
-    const unsigned OUT_COL = (INTER_COL - K) / S + 1;
+    const unsigned OUT_ROW = IN_ROW;
+    const unsigned OUT_COL = IN_COL;
 
     stream<ap_int<SIMD*IN_BIT>> adj_out("adj_out");
     StreamingDataWidthConverter_BatchT<IN_CH*IN_BIT, SIMD*IN_BIT, K*K*OUT_ROW*OUT_COL>(in, adj_out);

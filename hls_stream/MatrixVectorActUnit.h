@@ -910,6 +910,8 @@ for (unsigned rep = 0; rep < total_reps; ++rep) {
 #endif
 
 
+
+
 //函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
 template<
         unsigned MAT_ROW,
@@ -1239,7 +1241,7 @@ void PwcvMatrixVectorActUnitT(
             ap_int<PE*OUT_BIT> out_buf;
             for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, W_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
+                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, M0_BIT, BIAS_BIT, RSHIFT>(acc[p], bias[p][out_fold_cnt], m0[p][out_fold_cnt]);
             }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
@@ -1427,10 +1429,15 @@ void LastPwcvMatrixVectorUnitT(
     unsigned in_fold_cnt  = 0;
     unsigned out_fold_cnt = 0;
     unsigned tile         = 0;
+    unsigned vect_num     = 0;
 
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[PE];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
+    ap_int<MUL_BIT> max_acc[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_acc complete dim=0
+    ap_int<MUL_BIT> max_pos[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_pos complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS PIPELINE II=1
@@ -1480,11 +1487,11 @@ void LastPwcvMatrixVectorUnitT(
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            ap_int<PE*OUT_BIT> out_buf;
-            for (ap_uint<8> p = 0; p < PE; ++p) {
-#pragma HLS UNROLL
-                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = acc[p];
-            }
+//            ap_int<PE*OUT_BIT> out_buf;
+//            for (ap_uint<8> p = 0; p < PE; ++p) {
+//#pragma HLS UNROLL
+//                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = acc[p];
+//            }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
             for (unsigned p = 0; p < PE; ++p) {
@@ -1494,7 +1501,7 @@ void LastPwcvMatrixVectorUnitT(
             }
             cout << endl;
 #endif
-            out_fm.write(out_buf);
+            //out_fm.write(out_buf);
 #if MVAU_DEBUG
             cout << hex << "out_but: " << out_buf << endl;
 #endif
@@ -1502,6 +1509,27 @@ void LastPwcvMatrixVectorUnitT(
             if (out_fold_cnt == OUTPUT_FOLE) {
                 out_fold_cnt = 0;
                 tile = 0;
+                for (ap_uint<8> p = 0; p < PE; ++p) {
+#pragma HLS UNROLL
+                    if (max_acc[p] < acc[p]) {
+                        max_acc[p] = acc[p];
+                        max_pos[p] = vect_num;
+                        //cout << "Compare p:" << p << ", vect_num: " << vect_num << ", " << max_acc[p] << " vs " << acc[p] << endl;
+                    }
+                }
+                ++vect_num;
+                if (vect_num == VECT_NUMS) {
+                    ap_int<PE*OUT_BIT> out_buf;
+                    for (ap_uint<8> p = 0; p < PE; ++p) {
+#pragma HLS UNROLL
+                        //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
+                        if (max_acc[p] > m0[p][1]) {
+                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = acc[p];
+                            //cout << p << ": valid!" << endl;
+                        }
+                    }
+                    out_fm.write(out_buf);
+                }
             }
         }
     }
