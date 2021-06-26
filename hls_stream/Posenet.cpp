@@ -481,13 +481,10 @@ void PosenetDecv(
     }
     fpdecvpw6.close();
 #endif
-#if 1
     //TODO:
-    cout << dec << "pw6_out size: " << pw6_out.size() << endl;
     LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,12,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
-#endif
 }
 
 
