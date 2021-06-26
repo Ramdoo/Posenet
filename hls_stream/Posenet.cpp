@@ -308,7 +308,7 @@ void PosenetBeta(
 
 
 void PosenetDecv(
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -344,12 +344,16 @@ void PosenetDecv(
 #pragma HLS ARRAY_PARTITION variable=pwcv7_bias complete dim=1
 #pragma HLS ARRAY_PARTITION variable=pwcv7_m0   complete dim=1
 
+    stream<ap_int<POSE_PWCV0_INCH*POSE_OUT_BIT>> pw0_in("pw0_in");
+#pragma HLS RESOURCE variable=pw0_in core=FIFO_SRL
+    StreamingDataWidthConverter_BatchT<POSE_IN_CH*POSE_IN_BIT, POSE_PWCV0_INCH*POSE_IN_BIT, 8*6*10>(in, pw0_in);
+
     stream<ap_int<POSE_PWCV0_OUTCH*POSE_OUT_BIT>> pw0_out("pw0_out");
 #pragma HLS RESOURCE variable=pw0_out core=FIFO_SRL
 
     PwConvActLayerT<POSE_PWCV0_ROW,POSE_PWCV0_COL,POSE_PWCV0_INCH,POSE_IN_BIT,POSE_PWCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_PWCV0_SIMD,POSE_PWCV0_PE,16,WGT_PWCV0_SIZE,BIAS_M0_PWCV0_SIZE>
-            (in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
+            (pw0_in, pw0_out, pwcv0_w, pwcv0_bias, pwcv0_m0);
 #if 0
     cout << dec << "pw0_out size: " << pw0_out.size() << endl;
     ofstream fpdecvpw0("..\\Test\\decv_pw0.txt", ios::out);

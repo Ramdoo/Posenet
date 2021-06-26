@@ -31,7 +31,7 @@ extern void PosenetHead(
 );
 
 extern void PosenetDecv(
-        stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
 );
 
 static block config[16] = {
@@ -628,10 +628,9 @@ int main() {
     free(BIAS);
     free(M0);
 
-    stream<ap_int<POSE_PWCV0_INCH*POSE_IN_BIT>> decv_in("decv_in");
     stream<ap_int<POSE_CV7_OUTCH*12>> out("out");
-    StreamingDataWidthConverter_BatchT<POSE_OUT_CH*POSE_IN_BIT, POSE_PWCV0_INCH*POSE_IN_BIT, 8*6*10>(blk_in, decv_in);
-    PosenetDecv(decv_in, out);
+//    StreamingDataWidthConverter_BatchT<POSE_OUT_CH*POSE_IN_BIT, POSE_PWCV0_INCH*POSE_IN_BIT, 8*6*10>(blk_in, decv_in);
+    PosenetDecv(blk_in, out);
 
 }
 

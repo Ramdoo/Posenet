@@ -1514,7 +1514,7 @@ void LastPwcvMatrixVectorUnitT(
                     if (max_acc[p] < acc[p]) {
                         max_acc[p] = acc[p];
                         max_pos[p] = vect_num;
-                        //cout << "Compare p:" << p << ", vect_num: " << vect_num << ", " << max_acc[p] << " vs " << acc[p] << endl;
+//                        cout << "Compare p:" << p << ", vect_num: " << vect_num << ", " << max_acc[p] << " vs " << acc[p] << endl;
                     }
                 }
                 ++vect_num;
@@ -1522,10 +1522,10 @@ void LastPwcvMatrixVectorUnitT(
                     ap_int<PE*OUT_BIT> out_buf;
                     for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                        //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
+//                        cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
                         if (max_acc[p] > m0[p][1]) {
                             out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = acc[p];
-                            //cout << p << ": valid!" << endl;
+//                            cout << p << ": valid!" << endl;
                         }
                     }
                     out_fm.write(out_buf);
