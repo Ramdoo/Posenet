@@ -142,7 +142,6 @@ void PosenetAlpha(
 #pragma HLS INTERFACE axis port=m0_1
 #pragma HLS INTERFACE axis port=m0_2
 #pragma HLS INTERFACE axis port=m0_3
-#pragma HLS INTERFACE axis port=insts
 
 	//assert(
 	//           (ROW1==8 && ROW2==8 && ROW3==8 && COL1==6 && COL2==6 && COL3==6 && INCH_NUMS1==5 && OUTCH_NUMS1==10 && CH_NUMS2==10 && INCH_NUMS3==10 && OUTCH_NUMS3==10 && STRIDE==1 && IS_ADD==0 && NEXT_ADD==1)
