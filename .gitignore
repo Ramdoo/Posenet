@@ -476,3 +476,11 @@ hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/hls_design_meta.cpp
 hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/driver/src/xposenetalpha_sinit.c
 hls_stream_loop/hls_stream_loop/solution1/syn/systemc/LoadM1_parm_size_m1.h
 hls_stream_loop/hls_stream_loop/solution1/syn/systemc/LoadM3_parm_size_m3.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_biasbfk.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_m0_1bil.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_m0_2bjl.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_m0_3bkl.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_udivbIp.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_wgt1Yie.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_wgt26jw.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/PosenetAlpha_wgt37jG.h

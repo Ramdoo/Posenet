@@ -8,7 +8,7 @@
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传�?
+//通用的函数， 将尺寸大小和通道数作为入参传入
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -89,8 +89,8 @@ void DwConvActLayerAlpha(
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传�?
-//在�?�用的block中，作为前面的pwcv�? 不处理shortcut
+//通用的函数， 将尺寸大小和通道数作为入参传入
+//在通用的block中，作为前面的pwcv， 不处理shortcut
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -135,8 +135,8 @@ void PwConvActLayer(
 
 
 
-//通用的函数， 将尺寸大小和通道数作为入参传�?
-//在�?�用的block中，作为后面的pwcv�? �?处理是否有shortcut�? 有则add
+//通用的函数， 将尺寸大小和通道数作为入参传入
+//在通用的block中，作为后面的pwcv， 需处理是否有shortcut， 有则add
 template<
         unsigned IN_CH,
         unsigned IN_BIT,
@@ -155,7 +155,9 @@ void PwConvAddLayer(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         stream<ap_int<PE*OUT_BIT>> &add_in,
+#ifdef DEBUG
         stream<ap_int<PE*OUT_BIT>> &add_out,
+#endif
         ap_int<SIMD*W_BIT> weights[WGT_SIZE3][POSE_PE3],
         ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE3],
         ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE3],
@@ -163,8 +165,11 @@ void PwConvAddLayer(
         const unsigned IN_COL,
         const unsigned IN_CH_NUMS,
         const unsigned OUT_CH_NUMS,
-        const ap_uint<1> IS_ADD,
+        const ap_uint<1> IS_ADD
+#ifdef DEBUG
+        ,
         const ap_uint<1> NEXT_ADD
+#endif
 ) {
 #pragma HLS DATAFLOW
     const unsigned OUT_ROW = IN_ROW;
@@ -175,14 +180,22 @@ void PwConvAddLayer(
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
     PwcvAddMatrixVectorUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT>
-            (adj_out, mvau_out, add_in, add_out, weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL, IS_ADD, NEXT_ADD);
+            (adj_out, mvau_out, add_in,
+#ifdef DEBUG
+             add_out,
+#endif
+             weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL, IS_ADD
+#ifdef DEBUG
+             , NEXT_ADD
+#endif
+             );
 
     StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*OUT_CH_NUMS, OUT_CH_NUMS);
 
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -265,7 +278,7 @@ void DwConvLayerT(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -385,7 +398,7 @@ void DeConvLayerT(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
 template<
         unsigned IN_ROW,
         unsigned IN_COL,
@@ -429,7 +442,7 @@ void PwConvLayer3(
 }
 
 
-//函数名后面加T, 表示参数都放在模板Template中， 固定的参�?
+//函数名后面加T, 表示参数都放在模板Template中， 固定的参数
 template<
         unsigned IN_ROW,
         unsigned IN_COL,

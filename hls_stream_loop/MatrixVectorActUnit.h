@@ -611,15 +611,20 @@ void PwcvAddMatrixVectorUnit(
     stream<ap_int<SIMD*IN_BIT>> &in_fm,
     stream<ap_int<PE*OUT_BIT>> &out_fm,
     stream<ap_int<PE*OUT_BIT>> &add_in,
+#ifdef DEBUG
     stream<ap_int<PE*OUT_BIT>> &add_out,
+#endif
     ap_int<SIMD*W_BIT> weights[WGT_SIZE3][PE],
     ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE3],
     ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE3],
     const ap_uint<16> MAT_ROW,
     const ap_uint<16> MAT_COL,
     const ap_uint<16> VECT_NUMS,
-    const ap_uint<1> IS_ADD,
+    const ap_uint<1> IS_ADD
+#ifdef DEBUG
+    ,
     const ap_uint<1> NEXT_ADD
+#endif
 ) {
 #pragma HLS ARRAY_PARTITION variable=weights complete dim=2
 #pragma HLS ARRAY_PARTITION variable=bias complete dim=1
@@ -723,8 +728,10 @@ void PwcvAddMatrixVectorUnit(
         cout << endl;
 #endif
             out_fm.write(out_buf);
+#ifdef DEBUG
             if (NEXT_ADD)
                 add_out.write(out_buf);
+#endif
 #if MVAU_DEBUG
             cout << hex << "out_but: " << out_buf << endl;
 #endif

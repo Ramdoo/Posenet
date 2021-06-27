@@ -15,7 +15,10 @@ using namespace hls;
 
 void PosenetBlockAlpha(
         stream<infm_T> &in,        stream<outfm_T> &out,
-        stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        stream<addfm_T> &add_in,
+#ifdef DEBUG
+        stream<addfm_T> &add_out,
+#endif
         wgt1_T wgt1[WGT_SIZE1][POSE_PE1],  wgt2_T wgt2[WGT_SIZE2],           wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
         bias1_pe_T bias1[BIAS_M0_SIZE1],   bias2_pe_T bias2[BIAS_M0_SIZE2],  bias3_pe_T bias3[BIAS_M0_SIZE3],
         m0_1pe_T m0_1[BIAS_M0_SIZE1],      m0_2pe_T m0_2[BIAS_M0_SIZE2],     m0_3pe_T m0_3[BIAS_M0_SIZE3],
@@ -23,7 +26,10 @@ void PosenetBlockAlpha(
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
         ap_uint<4> INCH_NUMS3, ap_uint<4> OUTCH_NUMS3, ap_uint<2> STRIDE,
-        ap_uint<1> IS_ADD,     ap_uint<1> NEXT_ADD
+        ap_uint<1> IS_ADD
+#ifdef DEBUG
+,     ap_uint<1> NEXT_ADD
+#endif
 ) {
 #pragma HLS DATAFLOW
 
@@ -78,7 +84,15 @@ void PosenetBlockAlpha(
 #endif
 
     PwConvAddLayer<POSE_INTER_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16>
-            (dw2_out, out, add_in, add_out, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD, NEXT_ADD);
+            (dw2_out, out, add_in,
+#ifdef DEBUG
+             add_out,
+#endif
+             wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD
+#ifdef DEBUG
+             , NEXT_ADD
+#endif
+             );
 #if 0
     cout << dec << "out size: " << out.size() << endl;
     ofstream fpblk1cv3("..\\Test\\blk1cv3.txt", ios::out);
@@ -123,7 +137,10 @@ void PosenetBlockAlpha(
 
 void PosenetAlpha(
         stream<infm_T> &in,       stream<outfm_T> &out,
-        stream<addfm_T> &add_in,  stream<addfm_T> &add_out,
+        stream<addfm_T> &add_in,
+#ifdef DEBUG
+        stream<addfm_T> &add_out,
+#endif
         wgt16_T * weight,  bias8_T* bias,  m16_T* m0
 ) {
 
@@ -229,13 +246,20 @@ void PosenetAlpha(
         LoadBias3(bias, bias3_ping, 0, true);
         LoadM3(m0, m0_3_ping, 0, true);
         if (iter_block[0]) {
-            PosenetBlockAlpha(in, out, add_in, add_out,
+            PosenetBlockAlpha(in, out, add_in,
+#ifdef DEBUG
+                              add_out,
+#endif
                               wgt1_ping, wgt2_ping, wgt3_ping,
                               bias1_ping, bias2_ping, bias3_ping,
                               m0_1_ping, m0_2_ping, m0_3_ping,
                               ROW1, ROW2, ROW3, COL1, COL2, COL3,
                               INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
-                              STRIDE, IS_ADD, NEXT_ADD);
+                              STRIDE, IS_ADD
+#ifdef DEBUG
+                              , NEXT_ADD
+#endif
+                              );
             //TODO: Load pong
             LoadWgt1(weight, wgt1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
             LoadBias1(bias, bias1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
@@ -248,13 +272,20 @@ void PosenetAlpha(
             LoadM3(m0, m0_3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
 
         } else {
-            PosenetBlockAlpha(in, out, add_in, add_out,
+            PosenetBlockAlpha(in, out, add_in,
+#ifdef DEBUG
+                              add_out,
+#endif
                               wgt1_pong, wgt2_pong, wgt3_pong,
                               bias1_pong, bias2_pong, bias3_pong,
                               m0_1_pong, m0_2_pong, m0_3_pong,
                               ROW1, ROW2, ROW3, COL1, COL2, COL3,
                               INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
-                              STRIDE, IS_ADD, NEXT_ADD);
+                              STRIDE, IS_ADD
+#ifdef DEBUG
+                              , NEXT_ADD
+#endif
+                              );
             //TODO: Load ping
             LoadWgt1(weight, wgt1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
             LoadBias1(bias, bias1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));

@@ -2,6 +2,7 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 
+//#define DEBUG
 
 #define INST_WIDTH              32
 
