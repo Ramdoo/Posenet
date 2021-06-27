@@ -136,62 +136,73 @@ void PosenetAlpha(
 #pragma HLS INTERFACE m_axi depth=497 port=m0 offset=slave bundle=bm
 
     ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_ping[WGT_SIZE1][POSE_PE1];
-#pragma HLS RESOURCE variable=wgt1_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt1_ping core=RAM_2P_BRAM
 
     ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_ping[WGT_SIZE2];
-#pragma HLS RESOURCE variable=wgt2_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt2_ping core=RAM_2P_BRAM
 
     ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_ping[WGT_SIZE3][POSE_PE1];
-#pragma HLS RESOURCE variable=wgt3_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt3_ping core=RAM_2P_BRAM
 
     ap_int<POSE_PE1*POSE_BIAS_BIT> bias1_ping[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=bias1_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias1_ping core=RAM_2P_BRAM
 
     ap_int<POSE_PE2*POSE_BIAS_BIT> bias2_ping[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=bias2_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias2_ping core=RAM_2P_BRAM
 
     ap_int<POSE_PE3*POSE_BIAS_BIT> bias3_ping[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=bias3_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias3_ping core=RAM_2P_BRAM
 
     ap_uint<POSE_PE1*POSE_M0_BIT>  m0_1_ping[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=m0_1_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_1_ping core=RAM_2P_BRAM
 
     ap_uint<POSE_PE2*POSE_M0_BIT>  m0_2_ping[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=m0_2_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_2_ping core=RAM_2P_BRAM
 
     ap_uint<POSE_PE3*POSE_M0_BIT>  m0_3_ping[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=m0_3_ping core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_3_ping core=RAM_2P_BRAM
 
 
     ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_pong[WGT_SIZE1][POSE_PE1];
-#pragma HLS RESOURCE variable=wgt1_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt1_pong core=RAM_2P_BRAM
 
     ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_pong[WGT_SIZE2];
-#pragma HLS RESOURCE variable=wgt2_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt2_pong core=RAM_2P_BRAM
 
     ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_pong[WGT_SIZE3][POSE_PE1];
-#pragma HLS RESOURCE variable=wgt3_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=wgt3_pong core=RAM_2P_BRAM
 
     ap_int<POSE_PE1*POSE_BIAS_BIT> bias1_pong[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=bias1_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias1_pong core=RAM_2P_BRAM
 
     ap_int<POSE_PE2*POSE_BIAS_BIT> bias2_pong[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=bias2_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias2_pong core=RAM_2P_BRAM
 
     ap_int<POSE_PE3*POSE_BIAS_BIT> bias3_pong[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=bias3_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=bias3_pong core=RAM_2P_BRAM
 
     ap_uint<POSE_PE1*POSE_M0_BIT>  m0_1_pong[BIAS_M0_SIZE1];
-#pragma HLS RESOURCE variable=m0_1_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_1_pong core=RAM_2P_BRAM
 
     ap_uint<POSE_PE2*POSE_M0_BIT>  m0_2_pong[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=m0_2_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_2_pong core=RAM_2P_BRAM
 
     ap_uint<POSE_PE3*POSE_M0_BIT>  m0_3_pong[BIAS_M0_SIZE3];
-#pragma HLS RESOURCE variable=m0_3_pong core=RAM_1P_BRAM
+#pragma HLS RESOURCE variable=m0_3_pong core=RAM_2P_BRAM
 
 
-    for (unsigned iter_block = 0; iter_block < 16; ++iter_block) {
+#pragma HLS ALLOCATION instances=PosenetBlockAlpha	 limit=1 function
+#pragma HLS ALLOCATION instances=LoadWgt1    limit=1 function
+#pragma HLS ALLOCATION instances=LoadWgt2    limit=1 function
+#pragma HLS ALLOCATION instances=LoadWgt3    limit=1 function
+#pragma HLS ALLOCATION instances=LoadBias1   limit=1 function
+#pragma HLS ALLOCATION instances=LoadBias2   limit=1 function
+#pragma HLS ALLOCATION instances=LoadBias3   limit=1 function
+#pragma HLS ALLOCATION instances=LoadM1      limit=1 function
+#pragma HLS ALLOCATION instances=LoadM2      limit=1 function
+#pragma HLS ALLOCATION instances=LoadM3      limit=1 function
+
+    for (ap_uint<8> iter_block = 0; iter_block < BLOCK_NUMS; ++iter_block) {
         ap_uint<8> ROW1 = config[iter_block].ih;
         ap_uint<8> ROW2 = config[iter_block].ih;
         ap_uint<8> ROW3 = config[iter_block].ih / config[iter_block].s;
@@ -208,16 +219,16 @@ void PosenetAlpha(
         ap_uint<1> NEXT_ADD = config[iter_block].next_add;
 
         //TODO: Load ping
-        LoadWgt1(weight, wgt1_ping, 0);
-        LoadBias1(bias, bias1_ping, 0);
-        LoadM1(m0, m0_1_ping, 0);
-        LoadWgt2(weight, wgt2_ping, 0);
-        LoadBias2(bias, bias2_ping, 0);
-        LoadM2(m0, m0_2_ping, 0);
-        LoadWgt3(weight, wgt3_ping, 0);
-        LoadBias3(bias, bias3_ping, 0);
-        LoadM3(m0, m0_3_ping, 0);
-        if (iter_block % 2 == 0) {
+        LoadWgt1(weight, wgt1_ping, 0, true);
+        LoadBias1(bias, bias1_ping, 0, true);
+        LoadM1(m0, m0_1_ping, 0, true);
+        LoadWgt2(weight, wgt2_ping, 0, true);
+        LoadBias2(bias, bias2_ping, 0, true);
+        LoadM2(m0, m0_2_ping, 0, true);
+        LoadWgt3(weight, wgt3_ping, 0, true);
+        LoadBias3(bias, bias3_ping, 0, true);
+        LoadM3(m0, m0_3_ping, 0, true);
+        if (iter_block[0]) {
             PosenetBlockAlpha(in, out, add_in, add_out,
                               wgt1_ping, wgt2_ping, wgt3_ping,
                               bias1_ping, bias2_ping, bias3_ping,
@@ -226,15 +237,15 @@ void PosenetAlpha(
                               INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
                               STRIDE, IS_ADD, NEXT_ADD);
             //TODO: Load pong
-            LoadWgt1(weight, wgt1_pong, iter_block);
-            LoadBias1(bias, bias1_pong, iter_block);
-            LoadM1(m0, m0_1_pong, iter_block);
-            LoadWgt2(weight, wgt2_pong, iter_block);
-            LoadBias2(bias, bias2_pong, iter_block);
-            LoadM2(m0, m0_2_pong, iter_block);
-            LoadWgt3(weight, wgt3_pong, iter_block);
-            LoadBias3(bias, bias3_pong, iter_block);
-            LoadM3(m0, m0_3_pong, iter_block);
+            LoadWgt1(weight, wgt1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias1(bias, bias1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM1(m0, m0_1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt2(weight, wgt2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias2(bias, bias2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM2(m0, m0_2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt3(weight, wgt3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias3(bias, bias3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM3(m0, m0_3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
 
         } else {
             PosenetBlockAlpha(in, out, add_in, add_out,
@@ -245,15 +256,15 @@ void PosenetAlpha(
                               INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
                               STRIDE, IS_ADD, NEXT_ADD);
             //TODO: Load ping
-            LoadWgt1(weight, wgt1_ping, iter_block);
-            LoadBias1(bias, bias1_ping, iter_block);
-            LoadM1(m0, m0_1_ping, iter_block);
-            LoadWgt2(weight, wgt2_ping, iter_block);
-            LoadBias2(bias, bias2_ping, iter_block);
-            LoadM2(m0, m0_2_ping, iter_block);
-            LoadWgt3(weight, wgt3_ping, iter_block);
-            LoadBias3(bias, bias3_ping, iter_block);
-            LoadM3(m0, m0_3_ping, iter_block);
+            LoadWgt1(weight, wgt1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias1(bias, bias1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM1(m0, m0_1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt2(weight, wgt2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias2(bias, bias2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM2(m0, m0_2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt3(weight, wgt3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias3(bias, bias3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM3(m0, m0_3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
         }
     }
 
@@ -407,7 +418,7 @@ void PosenetBeta(
 
 
 void PosenetDecv(
-        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 16>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -584,7 +595,7 @@ void PosenetDecv(
     fpdecvpw6.close();
 #endif
     //TODO:
-    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,12,
+    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,16,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
 }

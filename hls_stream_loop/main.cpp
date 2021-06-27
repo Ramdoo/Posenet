@@ -32,7 +32,7 @@ extern void PosenetHead(
 );
 
 extern void PosenetDecv(
-        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 16>> &out
 );
 
 //static block config[16] = {
@@ -626,7 +626,7 @@ int main() {
     free(BIAS);
     free(M0);
 
-    stream<ap_int<POSE_CV7_OUTCH*12>> out("out");
+    stream<ap_int<POSE_CV7_OUTCH*16>> out("out");
     PosenetDecv(blk_in, out);
 
 }
