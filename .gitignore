@@ -474,3 +474,5 @@ hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/Posenet.pragma.0.cpp
 hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/hls_design_meta.h
 hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/hls_design_meta.cpp
 hls_stream_loop/hls_stream_loop/solution1/.autopilot/db/driver/src/xposenetalpha_sinit.c
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/LoadM1_parm_size_m1.h
+hls_stream_loop/hls_stream_loop/solution1/syn/systemc/LoadM3_parm_size_m3.h

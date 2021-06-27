@@ -1382,7 +1382,7 @@ void LastPwcvMatrixVectorUnitT(
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
     ap_int<MUL_BIT> max_acc[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 #pragma HLS ARRAY_PARTITION variable=max_acc complete dim=0
-    ap_int<MUL_BIT> max_pos[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    ap_int<OUT_BIT> max_pos[PE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 #pragma HLS ARRAY_PARTITION variable=max_pos complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
@@ -1470,8 +1470,8 @@ void LastPwcvMatrixVectorUnitT(
 #pragma HLS UNROLL
                         //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
                         if (max_acc[p] > m0[p][1]) {
-                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = acc[p];
-                            //cout << p << ": valid!" << endl;
+                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = max_pos[p];
+                            //cout << hex << out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) << endl;
                         }
                     }
                     out_fm.write(out_buf);
