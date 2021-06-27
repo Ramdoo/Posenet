@@ -155,7 +155,9 @@ void PwConvAddLayer(
         stream<ap_int<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         stream<ap_int<PE*OUT_BIT>> &add_in,
+#ifdef DEBUG
         stream<ap_int<PE*OUT_BIT>> &add_out,
+#endif
         stream<ap_int<PE*SIMD*W_BIT>> &weights,
         stream<ap_int<PE*BIAS_BIT>> &bias,
         stream<ap_uint<PE*M0_BIT>> &m0,
@@ -163,8 +165,11 @@ void PwConvAddLayer(
         const unsigned IN_COL,
         const unsigned IN_CH_NUMS,
         const unsigned OUT_CH_NUMS,
-        const ap_uint<1> IS_ADD,
+        const ap_uint<1> IS_ADD
+#ifdef DEBUG
+        ,
         const ap_uint<1> NEXT_ADD
+#endif
 ) {
 #pragma HLS DATAFLOW
     const unsigned OUT_ROW = IN_ROW;
@@ -175,7 +180,15 @@ void PwConvAddLayer(
 
     stream<ap_int<PE*IN_BIT>> mvau_out("mvau_out");
     PwcvAddMatrixVectorUnit<IN_BIT, OUT_BIT, MUL_BIT, W_BIT, BIAS_BIT, M0_BIT, SIMD, PE, RSHIFT>
-            (adj_out, mvau_out, add_in, add_out, weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL, IS_ADD, NEXT_ADD);
+            (adj_out, mvau_out, add_in,
+#ifdef DEBUG
+             add_out,
+#endif
+             weights, bias, m0, IN_CH*IN_CH_NUMS, OUT_CH*OUT_CH_NUMS, OUT_ROW*OUT_COL, IS_ADD
+#ifdef DEBUG
+             , NEXT_ADD
+#endif
+             );
 
     StreamingDataWidthConverter_Batch<PE*IN_BIT, OUT_CH*IN_BIT>(mvau_out, out, OUT_ROW*OUT_COL*OUT_CH_NUMS, OUT_CH_NUMS);
 

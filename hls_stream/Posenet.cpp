@@ -13,7 +13,10 @@ using namespace hls;
 
 
 void PosenetBlockAlpha(
-        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,
+#ifdef DEBUG
+        stream<addfm_T> &add_out,
+#endif
         stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
         stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
         stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
@@ -21,7 +24,10 @@ void PosenetBlockAlpha(
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
         ap_uint<4> INCH_NUMS3, ap_uint<4> OUTCH_NUMS3, ap_uint<2> STRIDE,
-        ap_uint<1> IS_ADD,     ap_uint<1> NEXT_ADD
+        ap_uint<1> IS_ADD
+#ifdef DEBUG
+        ,     ap_uint<1> NEXT_ADD
+#endif
 ) {
 #pragma HLS DATAFLOW
 
@@ -76,7 +82,16 @@ void PosenetBlockAlpha(
 #endif
 
     PwConvAddLayer<POSE_INTER_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16>
-            (dw2_out, out, add_in, add_out, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD, NEXT_ADD);
+            (dw2_out, out, add_in,
+#ifdef DEBUG
+             add_out,
+#endif
+             wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD
+#ifdef DEBUG
+              ,
+    NEXT_ADD
+#endif
+             );
 #if 0
     cout << dec << "out size: " << out.size() << endl;
     ofstream fpblk1cv3("..\\Test\\blk1cv3.txt", ios::out);
@@ -120,19 +135,27 @@ void PosenetBlockAlpha(
 
 
 void PosenetAlpha(
-        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
+        stream<infm_T> &in,        stream<outfm_T> &out,      stream<addfm_T> &add_in,
+#ifdef DEBUG
+        stream<addfm_T> &add_out,
+#endif
         stream<wgt1_pe_T> &wgt1,   stream<wgt2_T> &wgt2,      stream<wgt3_pe_T> &wgt3,
         stream<bias1_pe_T> &bias1, stream<bias2_pe_T> &bias2, stream<bias3_pe_T> &bias3,
         stream<m0_1pe_T> &m0_1,    stream<m0_2pe_T> &m0_2,    stream<m0_3pe_T> &m0_3,
         const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
         const unsigned INCH_NUMS1, const unsigned OUTCH_NUMS1, const unsigned CH_NUMS2,
         const unsigned INCH_NUMS3, const unsigned OUTCH_NUMS3, const unsigned STRIDE,
-        const unsigned IS_ADD, const unsigned NEXT_ADD
+        const unsigned IS_ADD
+#ifdef DEBUG
+        , const unsigned NEXT_ADD
+#endif
 ) {
 #pragma HLS INTERFACE axis port=in
 #pragma HLS INTERFACE axis port=out
 #pragma HLS INTERFACE axis port=add_in
+    #ifdef DEBUG
 #pragma HLS INTERFACE axis port=add_out
+    #endif
 #pragma HLS INTERFACE axis port=wgt1
 #pragma HLS INTERFACE axis port=wgt2
 #pragma HLS INTERFACE axis port=wgt3
@@ -150,13 +173,20 @@ void PosenetAlpha(
 	//        );
 
 
-    PosenetBlockAlpha(in, out, add_in, add_out,
+    PosenetBlockAlpha(in, out, add_in,
+#ifdef DEBUG
+                      add_out,
+#endif
                       wgt1, wgt2, wgt3,
                       bias1, bias2, bias3,
                       m0_1, m0_2, m0_3,
                       ROW1, ROW2, ROW3, COL1, COL2, COL3,
                       INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
-                      STRIDE, IS_ADD, NEXT_ADD);
+                      STRIDE, IS_ADD
+#ifdef DEBUG
+                      , NEXT_ADD
+#endif
+                      );
 
 }
 
@@ -308,7 +338,7 @@ void PosenetBeta(
 
 
 void PosenetDecv(
-        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 12>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 16>> &out
 ) {
 #pragma HLS DATAFLOW
 
@@ -485,7 +515,7 @@ void PosenetDecv(
     fpdecvpw6.close();
 #endif
     //TODO:
-    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,12,
+    LastConvLayerT<POSE_CV7_ROW,POSE_CV7_COL,POSE_CV7_INCH,POSE_IN_BIT, POSE_CV7_OUTCH,16,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,1,POSE_CV7_SIMD,POSE_CV7_PE,0, WGT_CV7_SIZE, BIAS_M0_CV7_SIZE>
             (pw6_out, out, pwcv7_w, pwcv7_bias, pwcv7_m0);
 }

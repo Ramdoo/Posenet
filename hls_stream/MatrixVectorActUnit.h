@@ -647,15 +647,20 @@ void PwcvAddMatrixVectorUnit(
     stream<ap_int<SIMD*IN_BIT>> &in_fm,
     stream<ap_int<PE*OUT_BIT>> &out_fm,
     stream<ap_int<PE*OUT_BIT>> &add_in,
+#ifdef DEBUG
     stream<ap_int<PE*OUT_BIT>> &add_out,
+#endif
     stream<ap_int<PE*SIMD*W_BIT>> &weights,
     stream<ap_int<PE*BIAS_BIT>> &bias,
     stream<ap_uint<PE*M0_BIT>> &m0,
     const ap_uint<16> MAT_ROW,
     const ap_uint<16> MAT_COL,
     const ap_uint<16> VECT_NUMS,
-    const ap_uint<1> IS_ADD,
+    const ap_uint<1> IS_ADD
+#ifdef DEBUG
+    ,
     const ap_uint<1> NEXT_ADD
+#endif
 ) {
     const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned OUTPUT_FOLE = MAT_COL/PE;
@@ -777,8 +782,10 @@ void PwcvAddMatrixVectorUnit(
         cout << endl;
 #endif
             out_fm.write(out_buf);
+#ifdef DEBUG
             if (NEXT_ADD)
                 add_out.write(out_buf);
+#endif
 #if MVAU_DEBUG
             cout << hex << "out_but: " << out_buf << endl;
 #endif

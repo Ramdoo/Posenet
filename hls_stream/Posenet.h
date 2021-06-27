@@ -2,6 +2,8 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 
+//#define DEBUG
+
 #define INST_WIDTH              32
 
 #define POSE_IN_CH              16
