@@ -215,9 +215,10 @@ int main() {
             ap_uint<POSE_HCV0_INCH*POSE_IN_BIT> temp_in;
             for (int ch = 0; ch < POSE_HCV0_INCH; ++ch) {
                 temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) = img[h*POSE_HCV0_COL*POSE_HCV0_INCH + w*POSE_HCV0_INCH + ch];
-                cout << dec;
-                fpconv0in << ap_uint<8>(temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
+                cout << hex;
+                //fpconv0in <<  ap_uint<8>(temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << " ";
             }
+            fpconv0in << "\"" << temp_in << "\", ";
             fpconv0in << endl;
             in.write(temp_in);
         }
@@ -400,10 +401,10 @@ int main() {
 
         ap_uint<8> ROW1 = config[i].ih;
         ap_uint<8> ROW2 = config[i].ih;
-        ap_uint<8> ROW3 = config[i].ih/config[i].s;
+        ap_uint<8> ROW3 = config[i].ih3;
         ap_uint<8> COL1 = config[i].iw;
         ap_uint<8> COL2 = config[i].iw;
-        ap_uint<8> COL3 = config[i].iw/config[i].s;
+        ap_uint<8> COL3 = config[i].iw3;
         ap_uint<4> INCH_NUMS1 = config[i].ic_nums1;
         ap_uint<4> OUTCH_NUMS1 = config[i].ic_nums2;
         ap_uint<4> CH_NUMS2 = config[i].ic_nums2;
@@ -578,10 +579,10 @@ int main() {
 
         ap_uint<8> ROW1_ = config[i+1].ih;
         ap_uint<8> ROW2_ = config[i+1].ih;
-        ap_uint<8> ROW3_ = config[i+1].ih/config[i+1].s;
+        ap_uint<8> ROW3_ = config[i+1].ih3;
         ap_uint<8> COL1_ = config[i+1].iw;
         ap_uint<8> COL2_ = config[i+1].iw;
-        ap_uint<8> COL3_ = config[i+1].iw/config[i+1].s;
+        ap_uint<8> COL3_ = config[i+1].iw3;
         ap_uint<4> INCH_NUMS1_ = config[i+1].ic_nums1;
         ap_uint<4> OUTCH_NUMS1_ = config[i+1].ic_nums2;
         ap_uint<4> CH_NUMS2_ = config[i+1].ic_nums2;

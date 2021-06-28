@@ -84,12 +84,12 @@ void LoadM1(m16_T * m0, m0_1pe_T m0_1[BIAS_M0_SIZE1], unsigned iter_block, bool 
 }
 
 
-void LoadM2(m16_T * m0, m0_2pe_T m0_2[BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
+void LoadM2(m16_T * m0, m0_2pe_T m0_2[BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
         m0_2pe_T temp_m0;
-        for (int pe = 0; pe < POSE_PE3/16; ++pe) {
+        for (int pe = 0; pe < POSE_PE2/16; ++pe) {
             temp_m0((pe+1)*16*POSE_M0_BIT-1, pe*16*POSE_M0_BIT) =
                     m0[parm_size[iter_block].m2 + rep*POSE_PE2 + pe];
         }
@@ -98,12 +98,12 @@ void LoadM2(m16_T * m0, m0_2pe_T m0_2[BIAS_M0_SIZE1], unsigned iter_block, bool 
 }
 
 
-void LoadM3(m16_T * m0, m0_3pe_T m0_3[BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
+void LoadM3(m16_T * m0, m0_3pe_T m0_3[BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].oc_nums3*16/POSE_PE3; rep=rep+2) {
         m16_T temp_m0 = m0[parm_size[iter_block].m3 + rep];
-        m0_3[rep] = temp_m0(POSE_PE1*POSE_M0_BIT-1, 0);
-        m0_3[rep+1] = temp_m0(2*POSE_PE1*POSE_M0_BIT-1, POSE_PE1*POSE_M0_BIT);
+        m0_3[rep] = temp_m0(POSE_PE3*POSE_M0_BIT-1, 0);
+        m0_3[rep+1] = temp_m0(2*POSE_PE3*POSE_M0_BIT-1, POSE_PE3*POSE_M0_BIT);
     }
 }

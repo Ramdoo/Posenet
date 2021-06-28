@@ -390,12 +390,6 @@ void DwcvMatrixVectorActUnit(
     ap_int<SIMD*IN_BIT> temp_in;
     ap_int<MUL_BIT> acc[SIMD];
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
-    ap_int<SIMD*W_BIT> wgt_store[WGT_SIZE2];
-#pragma HLS RESOURCE variable=wgt_store core=RAM_2P_BRAM
-    ap_int<PE*BIAS_BIT> bias_store[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=bias_store core=RAM_2P_BRAM
-    ap_int<PE*M0_BIT>   m0_store[BIAS_M0_SIZE2];
-#pragma HLS RESOURCE variable=m0_store core=RAM_2P_BRAM
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS LOOP_TRIPCOUNT min=27648 max=27648
