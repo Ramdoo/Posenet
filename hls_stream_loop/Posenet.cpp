@@ -11,6 +11,261 @@
 using namespace std;
 using namespace hls;
 
+void stream_to_mat (hls::stream<ap_uint<24>>&in,
+                    hls::Mat<IN_IMAGE_HEIGHT, IN_IMAGE_WIDTH, HLS_8UC3> & raw_img) {
+
+    for (int i=0; i<IN_IMAGE_HEIGHT; i++) {
+        for (int j=0; j<IN_IMAGE_WIDTH; j++) {
+#pragma HLS pipeline II = 1
+            hls::Scalar<3, ap_uint<8>> pix;
+            ap_uint<24> in_data = in.read();
+            for (unsigned int p=0; p < 3; p ++) {
+                pix.val[p] = in_data((p<<3)+7, (p<<3));
+            }
+            raw_img << pix;
+        }
+    }
+
+}
+
+
+void mat_to_stream (hls::Mat<RESIZE_IMAGE_HEIGHT, RESIZE_IMAGE_WIDTH, HLS_8UC3> & resize_img,
+                    hls::stream<ap_uint<24>> & out ) {
+
+    for (int i=0; i<RESIZE_IMAGE_HEIGHT; i++) {
+        for (int j=0; j<RESIZE_IMAGE_WIDTH; j++) {
+#pragma HLS pipeline II = 1
+            hls::Scalar<3, ap_uint<8>> pix;
+            resize_img >> pix;
+            ap_uint<24> out_data;
+            for (unsigned int p=0; p < 3; p ++) {
+                out_data((p<<3)+7, (p<<3)) = pix.val[p];
+            }
+            out.write(out_data);
+        }
+    }
+
+}
+
+
+void resize(hls::stream<ap_uint<24>> &in, hls::stream<ap_uint<24>> & out) {
+#pragma HLS dataflow
+    hls::Mat<IN_IMAGE_HEIGHT, IN_IMAGE_WIDTH, HLS_8UC3> raw_img;
+#pragma HLS STREAM variable=raw_img depth=128 dim=1
+    hls::Mat<RESIZE_IMAGE_HEIGHT, RESIZE_IMAGE_WIDTH, HLS_8UC3> resize_img;
+#pragma HLS STREAM variable=resize_img depth=128 dim=1
+    stream_to_mat(in, raw_img);
+    // hls::Resize(raw_img, resize_img, HLS_INTER_LINEAR);
+    hls::Resize_opr_linear(raw_img, resize_img);
+    mat_to_stream(resize_img, out);
+}
+
+
+void PosenetHeadResize(
+        stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
+) {
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
+
+#pragma HLS DATAFLOW
+
+#pragma HLS ARRAY_PARTITION variable=hcv0_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv1_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv1_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv2_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_m0   complete dim=1
+
+    stream<ap_uint<POSE_HCV0_INCH*POSE_OUT_BIT>> resize_stream("resize_stream");
+#pragma HLS RESOURCE variable=resize_stream core=FIFO_SRL
+    resize(in, resize_stream);
+
+    stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
+#pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
+
+    //TODO:
+    FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
+            (resize_stream, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
+
+    //cout << dec << "cv0_out size:" << cv0_out.size() << endl;
+#if 0
+    ofstream fphconv0("..\\Test\\hconv0.txt", ios::out);
+    if (!fphconv0)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv0_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv0 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv0 << endl;
+        }
+    }
+    fphconv0.close();
+#endif
+
+    stream<ap_int<POSE_HCV1_OUTCH*POSE_OUT_BIT>> cv1_out("cv1_out");
+#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
+
+    DwConvLayerT<POSE_HCV1_ROW,POSE_HCV1_COL,POSE_HCV1_INCH,POSE_IN_BIT,POSE_HCV1_INCH/POSE_HCV1_SIMD,POSE_HCV1_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,16,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
+            (cv0_out, cv1_out, hcv1_w, hcv1_bias, hcv1_m0);
+
+#if 0
+    ofstream fphconv1("..\\Test\\hconv1.txt", ios::out);
+    if (!fphconv1)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv1_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv1 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv1 << endl;
+        }
+    }
+    fphconv1.close();
+#endif
+
+    stream<ap_int<POSE_HCV2_OUTCH*POSE_OUT_BIT>> cv2_out("cv2_out");
+#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
+    PwConvLayer3<POSE_HCV2_ROW,POSE_HCV2_COL,POSE_HCV2_INCH,POSE_IN_BIT,POSE_HCV2_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,16,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
+            (cv1_out, cv2_out, hcv2_w, hcv2_bias, hcv2_m0);
+
+    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV2_COL; ++w) {
+            ap_int<POSE_IN_CH*POSE_IN_BIT> temp = cv2_out.read();
+            out.write(temp);
+        }
+    }
+
+#if 0
+    ofstream fphconv2("..\\Test\\hconv2.txt", ios::out);
+    if (!fphconv2)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV2_COL ; ++w) {
+            ap_int<POSE_IN_CH*POSE_IN_BIT> temp =  out.read();
+            for (int ch = 0; ch < POSE_IN_CH; ++ch) {
+                cout << dec;
+                fphconv2 << dec << ap_int<8>(temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
+            }
+            fphconv2 << endl;
+        }
+    }
+    fphconv2.close();
+#endif
+}
+
+
+void PosenetHead(
+        stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
+) {
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
+
+#pragma HLS DATAFLOW
+
+#pragma HLS ARRAY_PARTITION variable=hcv0_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv0_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv1_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv1_m0   complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=hcv2_w    complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=hcv2_m0   complete dim=1
+
+
+    stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
+#pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
+
+    //TODO:
+    FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
+            (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
+
+#if 0
+    //cout << dec << "cv0_out size:" << cv0_out.size() << endl;
+    ofstream fphconv0("..\\Test\\hconv0.txt", ios::out);
+    if (!fphconv0)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv0_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv0 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv0 << endl;
+        }
+    }
+    fphconv0.close();
+#endif
+
+    stream<ap_int<POSE_HCV1_OUTCH*POSE_OUT_BIT>> cv1_out("cv1_out");
+#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
+
+    DwConvLayerT<POSE_HCV1_ROW,POSE_HCV1_COL,POSE_HCV1_INCH,POSE_IN_BIT,POSE_HCV1_INCH/POSE_HCV1_SIMD,POSE_HCV1_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,16,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
+            (cv0_out, cv1_out, hcv1_w, hcv1_bias, hcv1_m0);
+
+#if 0
+    ofstream fphconv1("..\\Test\\hconv1.txt", ios::out);
+    if (!fphconv1)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
+            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv1_out.read();
+            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
+                cout << dec;
+                fphconv1 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
+            }
+            fphconv1 << endl;
+        }
+    }
+    fphconv1.close();
+#endif
+
+    stream<ap_int<POSE_HCV2_OUTCH*POSE_OUT_BIT>> cv2_out("cv2_out");
+#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
+    PwConvLayer3<POSE_HCV2_ROW,POSE_HCV2_COL,POSE_HCV2_INCH,POSE_IN_BIT,POSE_HCV2_OUTCH,POSE_OUT_BIT,
+            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,16,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
+            (cv1_out, cv2_out, hcv2_w, hcv2_bias, hcv2_m0);
+
+    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV2_COL; ++w) {
+            ap_int<POSE_IN_CH*POSE_IN_BIT> temp = cv2_out.read();
+            out.write(temp);
+        }
+    }
+
+#if 0
+    ofstream fphconv2("..\\Test\\hconv2.txt", ios::out);
+    if (!fphconv2)
+        cout << "no such file" << endl;
+    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
+        for (int w = 0; w < POSE_HCV2_COL ; ++w) {
+            ap_int<POSE_IN_CH*POSE_IN_BIT> temp =  out.read();
+            for (int ch = 0; ch < POSE_IN_CH; ++ch) {
+                cout << dec;
+                fphconv2 << dec << ap_int<8>(temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
+            }
+            fphconv2 << endl;
+        }
+    }
+    fphconv2.close();
+#endif
+}
 
 
 void PosenetBlockAlpha(
@@ -307,152 +562,6 @@ void PosenetAlpha(
 }
 
 
-#if 0
-// 128 channels, 96 cols
-void PosenetBlockBeta(
-        stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
-        const wgt_T wgt1[POSE_PE][WGT_PW_SIZE_BETA], const wgt_T wgt2[WGT_DW_SIZE_BETA], const wgt_T wgt3[POSE_PE][WGT_PW_SIZE_BETA],
-        const bias_T bias1[POSE_PE][BIAS_M0_SIZE_BETA], const bias_T bias2[POSE_PE][BIAS_M0_SIZE_BETA], const bias_T bias3[POSE_PE][BIAS_M0_SIZE_BETA],
-        const m0_T m0_1[POSE_PE][BIAS_M0_SIZE_BETA], const m0_T m0_2[POSE_PE][BIAS_M0_SIZE_BETA], const m0_T m0_3[POSE_PE][BIAS_M0_SIZE_BETA],
-        const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
-        const unsigned CH_NUMS1, const unsigned CH_NUMS2, const unsigned  CH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD, const unsigned IS_DECONV
-) {
-#pragma HLS DATAFLOW
-
-    stream<innerfm_T> pw1_out("pw1_out");
-#pragma HLS STREAM variable=pw1_out depth=128 dim=1
-
-    PwConvLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_BETA,BIAS_M0_SIZE_BETA>
-            (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, CH_NUMS1);
-
-    stream<innerfm_T> dw2_out("dw2_out");
-#pragma HLS STREAM variable=dw2_out depth=128 dim=1
-
-    DwConvDeConvLayerBeta<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD,POSE_PE,0,WGT_DW_SIZE_BETA,BIAS_M0_SIZE_BETA>
-            (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2, IS_DECONV);
-
-    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_BETA,BIAS_M0_SIZE_BETA>
-            (dw2_out, out, add_fm, wgt3, bias3, m0_3, ROW3, COL3, CH_NUMS3, IS_ADD);
-
-}
-
-
-void PosenetBeta(
-        stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
-        wgt_T* wgt1, wgt_T* wgt2, wgt_T* wgt3,
-        bias_T* bias1, bias_T* bias2, bias_T* bias3,
-        m0_T* m0_1, m0_T* m0_2, m0_T* m0_3,
-        const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
-        const unsigned CH_NUMS1, const unsigned CH_NUMS2, const unsigned  CH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD, const unsigned IS_DECONV,
-        const unsigned PINGPONG
-) {
-#pragma HLS INTERFACE m_axi depth=1024  port=wgt1 offset=slave bundle=wt
-#pragma HLS INTERFACE m_axi depth=72  port=wgt2 offset=slave bundle=wt
-#pragma HLS INTERFACE m_axi depth=1024  port=wgt3 offset=slave bundle=wt
-#pragma HLS INTERFACE m_axi depth=128  port=bias1 offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=128  port=bias2 offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=128  port=bias3 offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=128  port=m0_1 offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=128  port=m0_2 offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=128  port=m0_3 offset=slave bundle=bm
-
-#pragma HLS stream variable=add_fm depth=1024 dim=1
-
-    wgt_T wgt1_buf_beta_ping[POSE_PE][WGT_PW_SIZE_BETA];
-    wgt_T wgt2_buf_beta_ping[WGT_DW_SIZE_BETA];
-    wgt_T wgt3_buf_beta_ping[POSE_PE][WGT_PW_SIZE_BETA];
-
-    bias_T bias1_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-    bias_T bias2_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-    bias_T bias3_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-
-    m0_T m0_1_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-    m0_T m0_2_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-    m0_T m0_3_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
-
-#pragma HLS ARRAY_PARTITION variable=wgt1_buf_beta_ping complete dim=1
-#pragma HLS ARRAY_PARTITION variable=wgt3_buf_beta_ping complete dim=1
-
-#pragma HLS ARRAY_PARTITION variable=bias1_buf_beta_ping complete dim=1
-#pragma HLS ARRAY_PARTITION variable=bias2_buf_beta_ping complete dim=1
-#pragma HLS ARRAY_PARTITION variable=bias3_buf_beta_ping complete dim=1
-
-#pragma HLS ARRAY_PARTITION variable=m0_1_buf_beta_ping complete dim=1
-#pragma HLS ARRAY_PARTITION variable=m0_2_buf_beta_ping complete dim=1
-#pragma HLS ARRAY_PARTITION variable=m0_3_buf_beta_ping complete dim=1
-
-#if 0
-    wgt_T wgt1_buf_beta_pong[POSE_PE][WGT_PW_SIZE_BETA];
-    wgt_T wgt2_buf_beta_pong[WGT_DW_SIZE_BETA];
-    wgt_T wgt3_buf_beta_pong[POSE_PE][WGT_PW_SIZE_BETA];
-
-    bias_T bias1_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-    bias_T bias2_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-    bias_T bias3_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-
-    m0_T m0_1_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-    m0_T m0_2_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-    m0_T m0_3_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
-
-#pragma HLS ARRAY_PARTITION variable=wgt1_buf_beta_pong complete dim=1
-#pragma HLS ARRAY_PARTITION variable=wgt3_buf_beta_pong complete dim=1
-
-#pragma HLS ARRAY_PARTITION variable=bias1_buf_beta_pong complete dim=1
-#pragma HLS ARRAY_PARTITION variable=bias2_buf_beta_pong complete dim=1
-#pragma HLS ARRAY_PARTITION variable=bias3_buf_beta_pong complete dim=1
-
-#pragma HLS ARRAY_PARTITION variable=m0_1_buf_beta_pong complete dim=1
-#pragma HLS ARRAY_PARTITION variable=m0_2_buf_beta_pong complete dim=1
-#pragma HLS ARRAY_PARTITION variable=m0_3_buf_beta_pong complete dim=1
-
-    if (PINGPONG) {
-        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_pong);
-        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_pong);
-        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_pong);
-        LoadBiasBeta(bias1, bias1_buf_beta_pong);
-        LoadBiasBeta(bias2, bias2_buf_beta_pong);
-        LoadBiasBeta(bias3, bias3_buf_beta_pong);
-        LoadM0Beta(m0_1, m0_1_buf_beta_pong);
-        LoadM0Beta(m0_2, m0_2_buf_beta_pong);
-        LoadM0Beta(m0_3, m0_3_buf_beta_pong);
-
-        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_ping, wgt2_buf_beta_ping, wgt3_buf_beta_ping,
-                         bias1_buf_beta_ping, bias2_buf_beta_ping, bias3_buf_beta_ping,
-                         m0_1_buf_beta_ping, m0_2_buf_beta_ping, m0_3_buf_beta_ping,
-                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
-
-    } else {
-        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_ping);
-        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_ping);
-        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_ping);
-        LoadBiasBeta(bias1, bias1_buf_beta_ping);
-        LoadBiasBeta(bias2, bias2_buf_beta_ping);
-        LoadBiasBeta(bias3, bias3_buf_beta_ping);
-        LoadM0Beta(m0_1, m0_1_buf_beta_ping);
-        LoadM0Beta(m0_2, m0_2_buf_beta_ping);
-        LoadM0Beta(m0_3, m0_3_buf_beta_ping);
-
-        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_pong, wgt2_buf_beta_pong, wgt3_buf_beta_pong,
-                         bias1_buf_beta_pong, bias2_buf_beta_pong, bias3_buf_beta_pong,
-                         m0_1_buf_beta_pong, m0_2_buf_beta_pong, m0_3_buf_beta_pong,
-                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
-    }
-#endif
-        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_ping);
-        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_ping);
-        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_ping);
-        LoadBiasBeta(bias1, bias1_buf_beta_ping);
-        LoadBiasBeta(bias2, bias2_buf_beta_ping);
-        LoadBiasBeta(bias3, bias3_buf_beta_ping);
-
-        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_ping, wgt2_buf_beta_ping, wgt3_buf_beta_ping,
-                         bias1_buf_beta_ping, bias2_buf_beta_ping, bias3_buf_beta_ping,
-                         m0_1_buf_beta_ping, m0_2_buf_beta_ping, m0_3_buf_beta_ping,
-                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
-}
-#endif
-
-
 void PosenetDecv(
         stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 16>> &out
 ) {
@@ -637,107 +746,151 @@ void PosenetDecv(
 }
 
 
-void PosenetHead(
-        stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
+#if 0
+// 128 channels, 96 cols
+void PosenetBlockBeta(
+        stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
+        const wgt_T wgt1[POSE_PE][WGT_PW_SIZE_BETA], const wgt_T wgt2[WGT_DW_SIZE_BETA], const wgt_T wgt3[POSE_PE][WGT_PW_SIZE_BETA],
+        const bias_T bias1[POSE_PE][BIAS_M0_SIZE_BETA], const bias_T bias2[POSE_PE][BIAS_M0_SIZE_BETA], const bias_T bias3[POSE_PE][BIAS_M0_SIZE_BETA],
+        const m0_T m0_1[POSE_PE][BIAS_M0_SIZE_BETA], const m0_T m0_2[POSE_PE][BIAS_M0_SIZE_BETA], const m0_T m0_3[POSE_PE][BIAS_M0_SIZE_BETA],
+        const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
+        const unsigned CH_NUMS1, const unsigned CH_NUMS2, const unsigned  CH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD, const unsigned IS_DECONV
 ) {
-#pragma HLS INTERFACE axis port=in
-#pragma HLS INTERFACE axis port=out
-
 #pragma HLS DATAFLOW
 
-#pragma HLS ARRAY_PARTITION variable=hcv0_w    complete dim=1
-#pragma HLS ARRAY_PARTITION variable=hcv0_bias complete dim=1
-#pragma HLS ARRAY_PARTITION variable=hcv0_m0   complete dim=1
+    stream<innerfm_T> pw1_out("pw1_out");
+#pragma HLS STREAM variable=pw1_out depth=128 dim=1
 
-#pragma HLS ARRAY_PARTITION variable=hcv1_bias complete dim=1
-#pragma HLS ARRAY_PARTITION variable=hcv1_m0   complete dim=1
+    PwConvLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_BETA,BIAS_M0_SIZE_BETA>
+            (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, CH_NUMS1);
 
-#pragma HLS ARRAY_PARTITION variable=hcv2_w    complete dim=1
-#pragma HLS ARRAY_PARTITION variable=hcv2_bias complete dim=1
-#pragma HLS ARRAY_PARTITION variable=hcv2_m0   complete dim=1
+    stream<innerfm_T> dw2_out("dw2_out");
+#pragma HLS STREAM variable=dw2_out depth=128 dim=1
 
-    stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
-#pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
+    DwConvDeConvLayerBeta<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_SIMD,POSE_PE,0,WGT_DW_SIZE_BETA,BIAS_M0_SIZE_BETA>
+            (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2, IS_DECONV);
 
-    //TODO:
-    FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
-            (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
+    PwConvAddLayer<POSE_IN_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD,POSE_PE,0,WGT_PW_SIZE_BETA,BIAS_M0_SIZE_BETA>
+            (dw2_out, out, add_fm, wgt3, bias3, m0_3, ROW3, COL3, CH_NUMS3, IS_ADD);
 
-    //cout << dec << "cv0_out size:" << cv0_out.size() << endl;
-#if 0
-        ofstream fphconv0("..\\Test\\hconv0.txt", ios::out);
-    if (!fphconv0)
-        cout << "no such file" << endl;
-    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
-        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
-            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv0_out.read();
-            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
-                cout << dec;
-                fphconv0 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
-            }
-            fphconv0 << endl;
-        }
-    }
-    fphconv0.close();
-#endif
-
-    stream<ap_int<POSE_HCV1_OUTCH*POSE_OUT_BIT>> cv1_out("cv1_out");
-#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
-
-    DwConvLayerT<POSE_HCV1_ROW,POSE_HCV1_COL,POSE_HCV1_INCH,POSE_IN_BIT,POSE_HCV1_INCH/POSE_HCV1_SIMD,POSE_HCV1_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,POSE_HCV1_SIMD,POSE_HCV1_LOG2_SIMD,POSE_HCV1_PE,16,WGT_HCV1_SIZE,BIAS_M0_HCV1_SIZE>
-            (cv0_out, cv1_out, hcv1_w, hcv1_bias, hcv1_m0);
-
-#if 0
-    ofstream fphconv1("..\\Test\\hconv1.txt", ios::out);
-    if (!fphconv1)
-        cout << "no such file" << endl;
-    for (int h = 0; h < POSE_HCV1_ROW; ++h) {
-        for (int w = 0; w < POSE_HCV1_COL ; ++w) {
-            ap_int<POSE_HCV0_OUTCH*POSE_IN_BIT> temp =  cv1_out.read();
-            for (int ch = 0; ch < POSE_HCV0_OUTCH; ++ch) {
-                cout << dec;
-                fphconv1 << dec << temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) << "  ";
-            }
-            fphconv1 << endl;
-        }
-    }
-    fphconv1.close();
-#endif
-
-    stream<ap_int<POSE_HCV2_OUTCH*POSE_OUT_BIT>> cv2_out("cv2_out");
-#pragma HLS RESOURCE variable=cv1_out core=FIFO_SRL
-    PwConvLayer3<POSE_HCV2_ROW,POSE_HCV2_COL,POSE_HCV2_INCH,POSE_IN_BIT,POSE_HCV2_OUTCH,POSE_OUT_BIT,
-            POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,POSE_HCV2_SIMD,POSE_HCV2_PE,16,WGT_HCV2_SIZE,BIAS_M0_HCV2_SIZE>
-           (cv1_out, cv2_out, hcv2_w, hcv2_bias, hcv2_m0);
-
-    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
-        for (int w = 0; w < POSE_HCV2_COL; ++w) {
-            ap_int<POSE_IN_CH*POSE_IN_BIT> temp = cv2_out.read();
-            out.write(temp);
-        }
-    }
-
-#if 0
-    ofstream fphconv2("..\\Test\\hconv2.txt", ios::out);
-    if (!fphconv2)
-        cout << "no such file" << endl;
-    for (int h = 0; h < POSE_HCV2_ROW; ++h) {
-        for (int w = 0; w < POSE_HCV2_COL ; ++w) {
-            ap_int<POSE_IN_CH*POSE_IN_BIT> temp =  out.read();
-            for (int ch = 0; ch < POSE_IN_CH; ++ch) {
-                cout << dec;
-                fphconv2 << dec << ap_int<8>(temp((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
-            }
-            fphconv2 << endl;
-        }
-    }
-    fphconv2.close();
-#endif
 }
 
+
+void PosenetBeta(
+        stream<infm_T> &in, stream<outfm_T> &out, stream<addfm_T> &add_fm,
+        wgt_T* wgt1, wgt_T* wgt2, wgt_T* wgt3,
+        bias_T* bias1, bias_T* bias2, bias_T* bias3,
+        m0_T* m0_1, m0_T* m0_2, m0_T* m0_3,
+        const unsigned ROW1, const unsigned ROW2, const unsigned ROW3, const unsigned COL1, const unsigned COL2, const unsigned COL3,
+        const unsigned CH_NUMS1, const unsigned CH_NUMS2, const unsigned  CH_NUMS3, const unsigned STRIDE, const unsigned IS_ADD, const unsigned IS_DECONV,
+        const unsigned PINGPONG
+) {
+#pragma HLS INTERFACE m_axi depth=1024  port=wgt1 offset=slave bundle=wt
+#pragma HLS INTERFACE m_axi depth=72  port=wgt2 offset=slave bundle=wt
+#pragma HLS INTERFACE m_axi depth=1024  port=wgt3 offset=slave bundle=wt
+#pragma HLS INTERFACE m_axi depth=128  port=bias1 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=128  port=bias2 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=128  port=bias3 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=128  port=m0_1 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=128  port=m0_2 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=128  port=m0_3 offset=slave bundle=bm
+
+#pragma HLS stream variable=add_fm depth=1024 dim=1
+
+    wgt_T wgt1_buf_beta_ping[POSE_PE][WGT_PW_SIZE_BETA];
+    wgt_T wgt2_buf_beta_ping[WGT_DW_SIZE_BETA];
+    wgt_T wgt3_buf_beta_ping[POSE_PE][WGT_PW_SIZE_BETA];
+
+    bias_T bias1_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+    bias_T bias2_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+    bias_T bias3_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+
+    m0_T m0_1_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+    m0_T m0_2_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+    m0_T m0_3_buf_beta_ping[POSE_PE][BIAS_M0_SIZE_BETA];
+
+#pragma HLS ARRAY_PARTITION variable=wgt1_buf_beta_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=wgt3_buf_beta_ping complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=bias1_buf_beta_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias2_buf_beta_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias3_buf_beta_ping complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=m0_1_buf_beta_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_2_buf_beta_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_3_buf_beta_ping complete dim=1
+
 #if 0
+    wgt_T wgt1_buf_beta_pong[POSE_PE][WGT_PW_SIZE_BETA];
+    wgt_T wgt2_buf_beta_pong[WGT_DW_SIZE_BETA];
+    wgt_T wgt3_buf_beta_pong[POSE_PE][WGT_PW_SIZE_BETA];
+
+    bias_T bias1_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+    bias_T bias2_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+    bias_T bias3_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+
+    m0_T m0_1_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+    m0_T m0_2_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+    m0_T m0_3_buf_beta_pong[POSE_PE][BIAS_M0_SIZE_BETA];
+
+#pragma HLS ARRAY_PARTITION variable=wgt1_buf_beta_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=wgt3_buf_beta_pong complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=bias1_buf_beta_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias2_buf_beta_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias3_buf_beta_pong complete dim=1
+
+#pragma HLS ARRAY_PARTITION variable=m0_1_buf_beta_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_2_buf_beta_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_3_buf_beta_pong complete dim=1
+
+    if (PINGPONG) {
+        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_pong);
+        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_pong);
+        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_pong);
+        LoadBiasBeta(bias1, bias1_buf_beta_pong);
+        LoadBiasBeta(bias2, bias2_buf_beta_pong);
+        LoadBiasBeta(bias3, bias3_buf_beta_pong);
+        LoadM0Beta(m0_1, m0_1_buf_beta_pong);
+        LoadM0Beta(m0_2, m0_2_buf_beta_pong);
+        LoadM0Beta(m0_3, m0_3_buf_beta_pong);
+
+        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_ping, wgt2_buf_beta_ping, wgt3_buf_beta_ping,
+                         bias1_buf_beta_ping, bias2_buf_beta_ping, bias3_buf_beta_ping,
+                         m0_1_buf_beta_ping, m0_2_buf_beta_ping, m0_3_buf_beta_ping,
+                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
+
+    } else {
+        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_ping);
+        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_ping);
+        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_ping);
+        LoadBiasBeta(bias1, bias1_buf_beta_ping);
+        LoadBiasBeta(bias2, bias2_buf_beta_ping);
+        LoadBiasBeta(bias3, bias3_buf_beta_ping);
+        LoadM0Beta(m0_1, m0_1_buf_beta_ping);
+        LoadM0Beta(m0_2, m0_2_buf_beta_ping);
+        LoadM0Beta(m0_3, m0_3_buf_beta_ping);
+
+        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_pong, wgt2_buf_beta_pong, wgt3_buf_beta_pong,
+                         bias1_buf_beta_pong, bias2_buf_beta_pong, bias3_buf_beta_pong,
+                         m0_1_buf_beta_pong, m0_2_buf_beta_pong, m0_3_buf_beta_pong,
+                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
+    }
+#endif
+        LoadPwcvWgtBeta1(wgt1, wgt1_buf_beta_ping);
+        LoadDwcvWgtBeta2(wgt2, wgt2_buf_beta_ping);
+        LoadPwcvWgtBeta3(wgt3, wgt3_buf_beta_ping);
+        LoadBiasBeta(bias1, bias1_buf_beta_ping);
+        LoadBiasBeta(bias2, bias2_buf_beta_ping);
+        LoadBiasBeta(bias3, bias3_buf_beta_ping);
+
+        PosenetBlockBeta(in, out, add_fm, wgt1_buf_beta_ping, wgt2_buf_beta_ping, wgt3_buf_beta_ping,
+                         bias1_buf_beta_ping, bias2_buf_beta_ping, bias3_buf_beta_ping,
+                         m0_1_buf_beta_ping, m0_2_buf_beta_ping, m0_3_buf_beta_ping,
+                         ROW1, ROW2, ROW3, COL1, COL2, COL3, CH_NUMS1, CH_NUMS2, CH_NUMS3, STRIDE, IS_ADD, IS_DECONV);
+}
+
+
 void Top(
         stream<infm_T>     &in,          stream<outfm_T> &out,            stream<addfm_T> &add_in, stream<addfm_T> &add_out,
         stream<wgt1_pe_T>  &wgt1_alpha,  stream<wgt2_T> &wgt2_alpha,      stream<wgt3_pe_T> &wgt3_alpha,

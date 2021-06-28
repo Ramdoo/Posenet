@@ -1,10 +1,15 @@
 #pragma once
 #include <ap_int.h>
 #include <hls_stream.h>
+#include <hls_video.h>
 
 //#define DEBUG
 
-#define INST_WIDTH              32
+#define IN_IMAGE_WIDTH  480
+#define IN_IMAGE_HEIGHT 640
+
+#define RESIZE_IMAGE_WIDTH 192
+#define RESIZE_IMAGE_HEIGHT 256
 
 #define POSE_IN_CH              16
 #define POSE_OUT_CH             16
