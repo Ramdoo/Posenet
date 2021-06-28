@@ -403,9 +403,9 @@ void PosenetAlpha(
 #pragma HLS INTERFACE axis port=out
 #pragma HLS INTERFACE axis port=add_in
 #pragma HLS INTERFACE axis port=add_out
-#pragma HLS INTERFACE m_axi depth=14500 port=weight offset=slave bundle=wt
-#pragma HLS INTERFACE m_axi depth=994 port=bias offset=slave bundle=bm
-#pragma HLS INTERFACE m_axi depth=497 port=m0 offset=slave bundle=bm
+#pragma HLS INTERFACE m_axi depth=14500 port=weight offset=direct bundle=wt
+#pragma HLS INTERFACE m_axi depth=994   port=bias   offset=direct bundle=bm
+#pragma HLS INTERFACE m_axi depth=497   port=m0     offset=direct bundle=bm
 
     ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_ping[WGT_SIZE1][POSE_PE1];
 #pragma HLS RESOURCE variable=wgt1_ping core=RAM_2P_BRAM
