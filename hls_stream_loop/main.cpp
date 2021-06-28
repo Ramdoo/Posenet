@@ -28,7 +28,7 @@ void PosenetBlockAlpha(
 );
 
 extern void PosenetHead(
-        stream<ap_int<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
+        stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
 );
 
 extern void PosenetDecv(
@@ -203,20 +203,20 @@ void ReadData32(const char* path, char* img, unsigned int size) {
 
 
 int main() {
-    stream<ap_int<POSE_HCV0_INCH*POSE_IN_BIT>> in("testin");
+    stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> in("testin");
     int8_t * img = (int8_t *) malloc(256*192*3* sizeof(int8_t));
-    ReadData8("..\\data\\input_256x192.bin", (char*)img, 256*192*3);
+    ReadData8("..\\data\\input_256x192_0_255.bin", (char*)img, 256*192*3);
 
     ofstream fpconv0in("..\\Test\\hconv0in.txt", ios::out);
     if (!fpconv0in)
         cout << "no such file" << endl;
     for (int h = 0; h < POSE_HCV0_ROW; ++h) {
         for (int w = 0; w < POSE_HCV0_COL; ++w) {
-            ap_int<POSE_HCV0_INCH*POSE_IN_BIT> temp_in;
+            ap_uint<POSE_HCV0_INCH*POSE_IN_BIT> temp_in;
             for (int ch = 0; ch < POSE_HCV0_INCH; ++ch) {
                 temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT) = img[h*POSE_HCV0_COL*POSE_HCV0_INCH + w*POSE_HCV0_INCH + ch];
                 cout << dec;
-                fpconv0in << ap_int<8>(temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
+                fpconv0in << ap_uint<8>(temp_in((ch+1)*POSE_IN_BIT-1, ch*POSE_IN_BIT)) << "  ";
             }
             fpconv0in << endl;
             in.write(temp_in);

@@ -137,7 +137,7 @@ void PosenetBlockAlpha(
 
 void PosenetAlpha(
         stream<infm_T> &in,       stream<outfm_T> &out,
-        stream<addfm_T> &add_in,
+        stream<addfm_T> &add_in,  stream<ap_uint<8>> &add_flag,
 #ifdef DEBUG
         stream<addfm_T> &add_out,
 #endif
@@ -219,6 +219,16 @@ void PosenetAlpha(
 #pragma HLS ALLOCATION instances=LoadM2      limit=1 function
 #pragma HLS ALLOCATION instances=LoadM3      limit=1 function
 
+    //TODO: Load ping
+    LoadWgt1(weight, wgt1_ping, 0, true);
+    LoadBias1(bias, bias1_ping, 0, true);
+    LoadM1(m0, m0_1_ping, 0, true);
+    LoadWgt2(weight, wgt2_ping, 0, true);
+    LoadBias2(bias, bias2_ping, 0, true);
+    LoadM2(m0, m0_2_ping, 0, true);
+    LoadWgt3(weight, wgt3_ping, 0, true);
+    LoadBias3(bias, bias3_ping, 0, true);
+    LoadM3(m0, m0_3_ping, 0, true);
     for (ap_uint<8> iter_block = 0; iter_block < BLOCK_NUMS; ++iter_block) {
         ap_uint<8> ROW1 = config[iter_block].ih;
         ap_uint<8> ROW2 = config[iter_block].ih;
@@ -235,16 +245,11 @@ void PosenetAlpha(
         ap_uint<1> IS_ADD = config[iter_block].is_add;
         ap_uint<1> NEXT_ADD = config[iter_block].next_add;
 
-        //TODO: Load ping
-        LoadWgt1(weight, wgt1_ping, 0, true);
-        LoadBias1(bias, bias1_ping, 0, true);
-        LoadM1(m0, m0_1_ping, 0, true);
-        LoadWgt2(weight, wgt2_ping, 0, true);
-        LoadBias2(bias, bias2_ping, 0, true);
-        LoadM2(m0, m0_2_ping, 0, true);
-        LoadWgt3(weight, wgt3_ping, 0, true);
-        LoadBias3(bias, bias3_ping, 0, true);
-        LoadM3(m0, m0_3_ping, 0, true);
+        ap_uint<8> raw_add_flag;
+        raw_add_flag(0,0) = IS_ADD;
+        raw_add_flag(5,1) = iter_block;
+        add_flag.write(raw_add_flag);
+
         if (iter_block[0]) {
             PosenetBlockAlpha(in, out, add_in,
 #ifdef DEBUG
@@ -633,7 +638,7 @@ void PosenetDecv(
 
 
 void PosenetHead(
-        stream<ap_int<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
+        stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> &in, stream<ap_int<POSE_IN_CH * POSE_OUT_BIT>> &out
 ) {
 #pragma HLS INTERFACE axis port=in
 #pragma HLS INTERFACE axis port=out
@@ -655,9 +660,9 @@ void PosenetHead(
 #pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
 
     //TODO:
-    ConvLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
+    FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
-            (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0);
+            (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
 
     //cout << dec << "cv0_out size:" << cv0_out.size() << endl;
 #if 0

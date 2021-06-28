@@ -507,19 +507,24 @@ template<
         unsigned WGT_ARRAYSIZE,    //TODO:
         unsigned BIAS_M0_ARRAYSIZE //TODO:
 >
-void ConvLayerT(
-        stream<ap_int<IN_CH*IN_BIT>> &in,
+void FirstLayerT(
+        stream<ap_uint<IN_CH*IN_BIT>> &in,
         stream<ap_int<OUT_CH*OUT_BIT>> &out,
         const ap_int<SIMD*W_BIT> weights[PE][WGT_ARRAYSIZE],
         const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
-        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
+        const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE],
+        const ap_uint<M0_BIT> preprocess_m0[IN_CH],
+        const ap_uint<BIAS_BIT> preprocess_const0_16[IN_CH]
 ) {
 #pragma HLS DATAFLOW
 
 
     stream<ap_int<IN_CH*IN_BIT> > padding_out("samepad_out");
 #pragma HLS RESOURCE variable=padding_out core=FIFO_SRL
-    PaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT, 1>(in, padding_out);
+
+//Padding and preprocess
+    FirstLayerPaddingT<IN_ROW, IN_COL, IN_CH, IN_BIT, 1, M0_BIT, BIAS_BIT>(in, padding_out, preprocess_m0, preprocess_const0_16);
+
     const unsigned INTER_ROW = IN_ROW + 2;
     const unsigned INTER_COL = IN_COL + 2;
     const unsigned OUT_ROW = (INTER_ROW - K) / S + 1;

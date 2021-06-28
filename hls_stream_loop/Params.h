@@ -9,6 +9,9 @@
 // Head conv
 // ************************************************************************* //
 //simd = 3, pe = 16, bit = 8
+const ap_uint<POSE_M0_BIT> preprocess_m0[POSE_HCV0_INCH] = {"54201", "55411", "55165"};
+const ap_uint<POSE_BIAS_BIT> preprocess_const0_16[POSE_HCV0_INCH] = {"6703358", "6443221", "5711231"};
+
 const ap_int<POSE_HCV0_SIMD*POSE_W_BIT> hcv0_w[POSE_HCV0_PE][WGT_HCV0_SIZE] = {
         {"0xecec04","0x19de1d","0x10d311","0xf2cb06","0x6bb925","0x328508","0x0bea09","0x791314","0x40cc09"},
         {"0x5c00d6","0x7ffee5","0x5f13d0","0x2cf4cf","0x50bdab","0x490d0a","0x26eab2","0x2601a6","0x770c1d"},
