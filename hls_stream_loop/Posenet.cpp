@@ -13,7 +13,7 @@ using namespace hls;
 
 void stream_to_mat (hls::stream<ap_uint<24>>&in,
                     hls::Mat<IN_IMAGE_HEIGHT, IN_IMAGE_WIDTH, HLS_8UC3> & raw_img) {
-
+#pragma HLS dataflow
     for (int i=0; i<IN_IMAGE_HEIGHT; i++) {
         for (int j=0; j<IN_IMAGE_WIDTH; j++) {
 #pragma HLS pipeline II = 1
@@ -31,7 +31,7 @@ void stream_to_mat (hls::stream<ap_uint<24>>&in,
 
 void mat_to_stream (hls::Mat<RESIZE_IMAGE_HEIGHT, RESIZE_IMAGE_WIDTH, HLS_8UC3> & resize_img,
                     hls::stream<ap_uint<24>> & out ) {
-
+#pragma HLS dataflow
     for (int i=0; i<RESIZE_IMAGE_HEIGHT; i++) {
         for (int j=0; j<RESIZE_IMAGE_WIDTH; j++) {
 #pragma HLS pipeline II = 1
