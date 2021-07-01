@@ -179,6 +179,8 @@ typedef ap_int<16*POSE_W_BIT>                   wgt16_T;
 typedef ap_int<8*POSE_BIAS_BIT>                 bias8_T;
 typedef ap_int<POSE_MUL_BIT>                    mul_T;
 typedef ap_uint<16*POSE_M0_BIT>                 m16_T;
+typedef ap_int<POSE_BIAS_BIT>                   bias_T;
+typedef ap_uint<POSE_M0_BIT>                    m0_T;
 
 typedef ap_int<POSE_PE1*POSE_SIMD1*POSE_W_BIT>  wgt1_pe_T;
 typedef ap_int<POSE_PE2*POSE_SIMD2*POSE_W_BIT>  wgt2_pe_T;

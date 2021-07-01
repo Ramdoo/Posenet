@@ -41,69 +41,84 @@ void LoadWgt3(wgt16_T* weight, wgt3_T wgt3[WGT_SIZE3][POSE_PE3], unsigned iter_b
 }
 
 
-void LoadBias1(bias8_T* bias, bias1_pe_T bias1[BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
+void LoadBias1(bias8_T* bias, bias_T bias1[POSE_PE1][BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE1; ++rep) {
-        bias1[rep] = bias[parm_size[iter_block].b1 + rep];
+        bias8_T data = bias[parm_size[iter_block].b1 + rep];
+        for (int p = 0; p < POSE_PE1; ++p) {
+            bias1[p][rep] = data((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT);
+        }
     }
 }
 
 
-void LoadBias2(bias8_T* bias, bias2_pe_T bias2[BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
+void LoadBias2(bias8_T* bias, bias_T bias2[POSE_PE2][BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
-        bias2_pe_T temp_bias;
-        for (int pe = 0; pe < POSE_PE2/8; ++pe) {
-            temp_bias((pe+1)*8*POSE_BIAS_BIT-1, pe*8*POSE_BIAS_BIT) =
-                    bias[parm_size[iter_block].b2 + rep*POSE_PE2 + pe];
+        for (int iter_p = 0; iter_p < POSE_PE2/8; ++iter_p) {
+            bias8_T data = bias[parm_size[iter_block].b2 + rep*POSE_PE2 + iter_p];
+            for (int pe = 0; pe < 8; ++pe) {
+                bias2[iter_p*8+pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
+            }
         }
-        bias2[rep] = temp_bias;
     }
 }
 
 
-void LoadBias3(bias8_T* bias, bias3_pe_T bias3[BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
+void LoadBias3(bias8_T* bias, bias_T bias3[POSE_PE3][BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].oc_nums3*16/POSE_PE3; ++rep) {
-        bias3[rep] = bias[parm_size[iter_block].b3 + rep];
+        bias8_T data = bias[parm_size[iter_block].b3 + rep];
+        for (int pe = 0; pe < POSE_PE3; ++pe) {
+            bias3[pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
+        }
     }
 }
 
 
-void LoadM1(m16_T * m0, m0_1pe_T m0_1[BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
+void LoadM1(m16_T * m0, m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE1; rep=rep+2) {
-        m16_T temp_m0 = m0[parm_size[iter_block].m1 + rep];
-        m0_1[rep] = temp_m0(POSE_PE1*POSE_M0_BIT-1, 0);
-        m0_1[rep+1] = temp_m0(2*POSE_PE1*POSE_M0_BIT-1, POSE_PE1*POSE_M0_BIT);
+        m16_T data = m0[parm_size[iter_block].m1 + rep];
+        for (int p = 0; p < POSE_PE1; ++p) {
+            m0_1[p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
+        }
+        for (int p = 0; p < POSE_PE1; ++p) {
+            m0_1[p][rep+1] = data((p+1)*POSE_M0_BIT+127, p*POSE_M0_BIT+128);
+        }
     }
 }
 
 
-void LoadM2(m16_T * m0, m0_2pe_T m0_2[BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
+void LoadM2(m16_T * m0, m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
         m0_2pe_T temp_m0;
-        for (int pe = 0; pe < POSE_PE2/16; ++pe) {
-            temp_m0((pe+1)*16*POSE_M0_BIT-1, pe*16*POSE_M0_BIT) =
-                    m0[parm_size[iter_block].m2 + rep*POSE_PE2 + pe];
+        for (int iter_16 = 0; iter_16 < POSE_PE2/16; ++iter_16) {
+            m16_T data = m0[parm_size[iter_block].m2 + rep*POSE_PE2 + iter_16];
+            for (int p = 0; p < 16; ++p) {
+                m0_2[iter_16*16+p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
+            }
         }
-        m0_2[rep] = temp_m0;
     }
 }
 
 
-void LoadM3(m16_T * m0, m0_3pe_T m0_3[BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
+void LoadM3(m16_T * m0, m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].oc_nums3*16/POSE_PE3; rep=rep+2) {
-        m16_T temp_m0 = m0[parm_size[iter_block].m3 + rep];
-        m0_3[rep] = temp_m0(POSE_PE3*POSE_M0_BIT-1, 0);
-        m0_3[rep+1] = temp_m0(2*POSE_PE3*POSE_M0_BIT-1, POSE_PE3*POSE_M0_BIT);
+        m16_T data = m0[parm_size[iter_block].m3 + rep];
+        for (int p = 0; p < POSE_PE3; ++p) {
+            m0_3[p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
+        }
+        for (int p = 0; p < POSE_PE3; ++p) {
+            m0_3[p][rep+1] = data((p+1)*POSE_M0_BIT+127, p*POSE_M0_BIT+128);
+        }
     }
 }

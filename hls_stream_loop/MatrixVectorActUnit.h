@@ -222,15 +222,15 @@ void PwcvMatrixVectorActUnit(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
         stream<ap_int<PE*OUT_BIT>> &out_fm,
         ap_int<SIMD*W_BIT> weights[WGT_SIZE1][PE],
-        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE1],
-        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE1],
+        ap_int<BIAS_BIT> bias[PE][BIAS_M0_SIZE1],
+        ap_uint<M0_BIT> m0[PE][BIAS_M0_SIZE1],
         const ap_uint<16> MAT_ROW,
         const ap_uint<16> MAT_COL,
         const ap_uint<16> VECT_NUMS
 ) {
 #pragma HLS ARRAY_PARTITION variable=weights complete dim=2
-#pragma HLS ARRAY_PARTITION variable=bias dim=1 complete
-#pragma HLS ARRAY_PARTITION variable=m0 dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=bias complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0 complete dim=1
 
     const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned OUTPUT_FOLE = MAT_COL/PE;
@@ -305,13 +305,11 @@ void PwcvMatrixVectorActUnit(
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
-            ap_int<PE*M0_BIT>   m0_buf = m0[out_fold_cnt];
             ap_int<PE*OUT_BIT>  out_buf;
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                ap_int<BIAS_BIT> tmp_bias = ap_int<BIAS_BIT>(bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT)));
-                ap_int<M0_BIT>   tmp_m0   = ap_uint<M0_BIT>(m0_buf((p<<LOG_M0_BIT)+(M0_BIT-1), (p<<LOG_M0_BIT)));
+                ap_int<BIAS_BIT> tmp_bias = bias[p][out_fold_cnt];
+                ap_int<M0_BIT>   tmp_m0   = m0[p][out_fold_cnt];
                 out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ReLU<MUL_BIT, OUT_BIT, M0_BIT, BIAS_BIT, RSHIFT>
                                                                             (acc[p], tmp_bias, tmp_m0);
             }
@@ -359,15 +357,13 @@ void DwcvMatrixVectorActUnit(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
         stream<ap_int<PE*OUT_BIT>> &out_fm,
         ap_int<SIMD*W_BIT> weights[WGT_SIZE2],
-        ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE2],
-        ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE2],
+        ap_int<BIAS_BIT> bias[PE][BIAS_M0_SIZE2],
+        ap_uint<M0_BIT> m0[PE][BIAS_M0_SIZE2],
         const unsigned MAT_ROW, // K*K*CH
         const unsigned MAT_COL, // 1
         const unsigned IN_CH_NUMS,
         const unsigned VECT_NUMS
 ) {
-#pragma HLS ARRAY_PARTITION variable=bias dim=1 complete
-#pragma HLS ARRAY_PARTITION variable=m0 dim=1 complete
 
     //const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned INPUT_FOLD  = 9;
@@ -427,12 +423,10 @@ void DwcvMatrixVectorActUnit(
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
             ap_int<PE*OUT_BIT>  out_buf;
-            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
-            ap_int<PE*M0_BIT>   m0_buf = m0[out_fold_cnt];
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                ap_int<BIAS_BIT> tmp_bias = ap_int<BIAS_BIT>(bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT)));
-                ap_uint<M0_BIT>  tmp_m0   = ap_uint<M0_BIT>(m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT)));
+                ap_int<BIAS_BIT> tmp_bias = bias[p][out_fold_cnt];
+                ap_uint<M0_BIT>  tmp_m0   = m0[p][out_fold_cnt];
                 out_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) =
                         ReLU<MUL_BIT, OUT_BIT, M0_BIT, BIAS_BIT, RSHIFT>(acc[p], tmp_bias, tmp_m0);
             }
@@ -609,8 +603,8 @@ void PwcvAddMatrixVectorUnit(
     stream<ap_int<PE*OUT_BIT>> &add_out,
 #endif
     ap_int<SIMD*W_BIT> weights[WGT_SIZE3][PE],
-    ap_int<PE*BIAS_BIT> bias[BIAS_M0_SIZE3],
-    ap_uint<PE*M0_BIT> m0[BIAS_M0_SIZE3],
+    ap_int<BIAS_BIT> bias[PE][BIAS_M0_SIZE3],
+    ap_uint<M0_BIT> m0[PE][BIAS_M0_SIZE3],
     const ap_uint<16> MAT_ROW,
     const ap_uint<16> MAT_COL,
     const ap_uint<16> VECT_NUMS,
@@ -620,9 +614,6 @@ void PwcvAddMatrixVectorUnit(
     const ap_uint<1> NEXT_ADD
 #endif
 ) {
-#pragma HLS ARRAY_PARTITION variable=weights complete dim=2
-#pragma HLS ARRAY_PARTITION variable=bias complete dim=1
-#pragma HLS ARRAY_PARTITION variable=m0 complete dim=1
 
     const unsigned INPUT_FOLD  = MAT_ROW/SIMD;
     const unsigned OUTPUT_FOLE = MAT_COL/PE;
@@ -697,14 +688,12 @@ void PwcvAddMatrixVectorUnit(
             in_fold_cnt = 0;
             ap_int<PE*OUT_BIT> out_buf;
             ap_int<PE*OUT_BIT> addfm_buf = 0;
-            ap_int<PE*BIAS_BIT> bias_buf = bias[out_fold_cnt];
-            ap_int<PE*M0_BIT>   m0_buf   = m0[out_fold_cnt];
             if (IS_ADD)
                 addfm_buf = add_in.read();
             for (ap_uint<16> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                ap_int<BIAS_BIT> tmp_bias   = ap_int<BIAS_BIT>(bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT)));
-                ap_int<M0_BIT>   tmp_m0     = ap_uint<M0_BIT>(m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT)));
+                ap_int<BIAS_BIT> tmp_bias   = bias[p][out_fold_cnt];
+                ap_int<M0_BIT>   tmp_m0     = m0[p][out_fold_cnt];
                 ap_int<IN_BIT>   temp_addfm = ap_int<OUT_BIT>(addfm_buf((p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)));
                 out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = ShortcutAddbias<MUL_BIT, OUT_BIT, M0_BIT, BIAS_BIT, RSHIFT>
                         (acc[p], temp_addfm, tmp_bias, tmp_m0, IS_ADD);

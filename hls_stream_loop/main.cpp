@@ -16,15 +16,21 @@
 extern
 void PosenetBlockAlpha(
         stream<infm_T> &in,        stream<outfm_T> &out,
-        stream<addfm_T> &add_in,   stream<addfm_T> &add_out,
-        wgt1_T wgt1[WGT_SIZE1][POSE_PE1],  wgt2_T wgt2[WGT_SIZE2],           wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
-        bias1_pe_T bias1[BIAS_M0_SIZE1],   bias2_pe_T bias2[BIAS_M0_SIZE2],  bias3_pe_T bias3[BIAS_M0_SIZE3],
-        m0_1pe_T m0_1[BIAS_M0_SIZE1],       m0_2pe_T m0_2[BIAS_M0_SIZE2],    m0_3pe_T m0_3[BIAS_M0_SIZE3],
+        stream<addfm_T> &add_in,
+#ifdef DEBUG
+        stream<addfm_T> &add_out,
+#endif
+        wgt1_T wgt1[WGT_SIZE1][POSE_PE1],        wgt2_T wgt2[WGT_SIZE2],                 wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
+        bias_T bias1[POSE_PE1][BIAS_M0_SIZE1],   bias_T bias2[POSE_PE2][BIAS_M0_SIZE2],  bias_T bias3[POSE_PE3][BIAS_M0_SIZE3],
+        m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1],      m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2],     m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3],
         ap_uint<8> ROW1,       ap_uint<8> ROW2,        ap_uint<8> ROW3,
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
         ap_uint<4> INCH_NUMS3, ap_uint<4> OUTCH_NUMS3, ap_uint<2> STRIDE,
-        ap_uint<1> IS_ADD,     ap_uint<1> NEXT_ADD
+        ap_uint<1> IS_ADD
+#ifdef DEBUG
+        ,     ap_uint<1> NEXT_ADD
+#endif
 );
 
 extern void PosenetHead(
@@ -203,6 +209,10 @@ void ReadData32(const char* path, char* img, unsigned int size) {
 
 
 int main() {
+
+    for (ap_uint<8> iter_block = 0; iter_block < BLOCK_NUMS; ++iter_block) {
+        cout << ~iter_block[0] << endl;
+    }
     stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> in("testin");
     int8_t * img = (int8_t *) malloc(256*192*3* sizeof(int8_t));
     ReadData8("..\\data\\input_256x192_0_255.bin", (char*)img, 256*192*3);
@@ -299,7 +309,7 @@ int main() {
         fpblk1wgt3.close();
 
 
-        bias1_pe_T bias1[BIAS_M0_SIZE1];
+        bias_T bias1[POSE_PE1][BIAS_M0_SIZE1];
         ofstream fpblk1bias1("..\\Test\\blk1bias1.txt", ios::out);
         if (!fpblk1bias1)
             cout << "no such file" << endl;
@@ -308,32 +318,32 @@ int main() {
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
+                bias1[p][rep] = BIAS[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
                 cout << hex;
                 //fpblk1bias1 << temp_bias << "  " << endl;
             }
             fpblk1bias1 << temp_bias << "  " << endl;
-            bias1[rep] = temp_bias;
         }
         fpblk1bias1.close();
 
-        bias2_pe_T bias2[BIAS_M0_SIZE2];
+        bias_T bias2[POSE_PE2][BIAS_M0_SIZE2];
         ofstream fpblk1bias2("..\\Test\\blk1bias2.txt", ios::out);
         if (!fpblk1bias2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48/POSE_PE2; ++rep) {
-            bias2_pe_T temp_bias;
+            bias_T temp_bias;
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
+                bias2[p][rep] = BIAS[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
                 cout << hex;
                 //fpblk1bias2 << temp_bias << "  " << endl;
             }
             fpblk1bias2 << temp_bias << "  " << endl;
-            bias2[rep] = temp_bias;
         }
         fpblk1bias2.close();
 
-        bias3_pe_T bias3[BIAS_M0_SIZE3];
+        bias_T bias3[POSE_PE3][BIAS_M0_SIZE3];
         ofstream fpblk1bias3("..\\Test\\blk1bias3.txt", ios::out);
         if (!fpblk1bias3)
             cout << "no such file" << endl;
@@ -342,15 +352,15 @@ int main() {
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
+                bias3[p][rep] = BIAS[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
                 cout << hex;
                 //fpblk1bias3 << temp_bias << "  " << endl;
             }
             fpblk1bias3 << temp_bias << "  " << endl;
-            bias3[rep] = temp_bias;
         }
         fpblk1bias3.close();
 
-        m0_1pe_T m0_1[BIAS_M0_SIZE1];
+        m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1];
         ofstream fpblk1m1("..\\Test\\blk1m1.txt", ios::out);
         if (!fpblk1m1)
             cout << "no such file" << endl;
@@ -359,14 +369,14 @@ int main() {
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
+                m0_1[p][rep] = M0[parm_size_debug[i].b1 + rep * POSE_PE1 + p];
                 cout << hex;
             }
             fpblk1m1 << temp_m << "  " << endl;
-            m0_1[rep] = temp_m;
         }
         fpblk1m1.close();
 
-        m0_2pe_T m0_2[BIAS_M0_SIZE2];
+        m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2];
         ofstream fpblk1m2("..\\Test\\blk1m2.txt", ios::out);
         if (!fpblk1m2)
             cout << "no such file" << endl;
@@ -375,14 +385,14 @@ int main() {
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
+                m0_2[p][rep] = M0[parm_size_debug[i].b2 + rep * POSE_PE2 + p];
                 cout << hex;
             }
             fpblk1m2 << temp_m << "  " << endl;
-            m0_2[rep] = temp_m;
         }
         fpblk1m2.close();
 
-        m0_3pe_T m0_3[BIAS_M0_SIZE3];
+        m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3];
         ofstream fpblk1m3("..\\Test\\blk1m3.txt", ios::out);
         if (!fpblk1m3)
             cout << "no such file" << endl;
@@ -391,10 +401,10 @@ int main() {
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
+                m0_3[p][rep] = M0[parm_size_debug[i].b3 + rep * POSE_PE3 + p];
                 cout << hex;
             }
             fpblk1m3 << temp_m << "  " << endl;
-            m0_3[rep] = temp_m;
         }
         fpblk1m3.close();
 
@@ -478,7 +488,7 @@ int main() {
         }
         fpblk2wgt3.close();
 
-        bias1_pe_T bias4[BIAS_M0_SIZE1];
+        bias_T bias4[POSE_PE1][BIAS_M0_SIZE1];
         ofstream fpblk2bias1("..\\Test\\blk2bias1.txt", ios::out);
         if (!fpblk2bias1)
             cout << "no such file" << endl;
@@ -487,15 +497,15 @@ int main() {
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
+                bias4[p][rep] = BIAS[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
                 cout << hex;
                 //fpblk1bias1 << temp_bias << "  " << endl;
             }
             fpblk2bias1 << temp_bias << "  " << endl;
-            bias4[rep] = temp_bias;
         }
         fpblk2bias1.close();
 
-        bias2_pe_T bias5[BIAS_M0_SIZE2];
+        bias_T bias5[POSE_PE2][BIAS_M0_SIZE2];
         ofstream fpblk2bias2("..\\Test\\blk2bias2.txt", ios::out);
         if (!fpblk2bias2)
             cout << "no such file" << endl;
@@ -504,15 +514,15 @@ int main() {
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
+                bias5[p][rep] = BIAS[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
                 cout << hex;
                 //fpblk1bias2 << temp_bias << "  " << endl;
             }
             fpblk2bias2 << temp_bias << "  " << endl;
-            bias5[rep] = temp_bias;
         }
         fpblk2bias2.close();
 
-        bias3_pe_T bias6[BIAS_M0_SIZE3];
+        bias_T bias6[POSE_PE3][BIAS_M0_SIZE3];
         ofstream fpblk2bias3("..\\Test\\blk2bias3.txt", ios::out);
         if (!fpblk2bias3)
             cout << "no such file" << endl;
@@ -521,15 +531,15 @@ int main() {
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_bias((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT)
                     = BIAS[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
+                bias6[p][rep] = BIAS[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
                 cout << hex;
                 //fpblk1bias3 << temp_bias << "  " << endl;
             }
             fpblk2bias3 << temp_bias << "  " << endl;
-            bias6[rep] = temp_bias;
         }
         fpblk2bias3.close();
 
-        m0_1pe_T m0_4[BIAS_M0_SIZE1];
+        m0_T m0_4[POSE_PE1][BIAS_M0_SIZE1];
         ofstream fpblk2m1("..\\Test\\blk2m1.txt", ios::out);
         if (!fpblk2m1)
             cout << "no such file" << endl;
@@ -538,14 +548,14 @@ int main() {
             for (int p = 0 ; p < POSE_PE1; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
+                m0_4[p][rep] = M0[parm_size_debug[i + 1].b1 + rep * POSE_PE1 + p];
                 cout << hex;
             }
             fpblk2m1 << temp_m << "  " << endl;
-            m0_4[rep] = temp_m;
         }
         fpblk2m1.close();
 
-        m0_2pe_T m0_5[BIAS_M0_SIZE2];
+        m0_T m0_5[POSE_PE2][BIAS_M0_SIZE2];
         ofstream fpblk2m2("..\\Test\\blk2m2.txt", ios::out);
         if (!fpblk2m2)
             cout << "no such file" << endl;
@@ -554,14 +564,14 @@ int main() {
             for (int p = 0 ; p < POSE_PE2; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
+                m0_5[p][rep] = M0[parm_size_debug[i + 1].b2 + rep * POSE_PE2 + p];
                 cout << hex;
             }
             fpblk2m2 << temp_m << "  " << endl;
-            m0_5[rep] = temp_m;
         }
         fpblk2m2.close();
 
-        m0_3pe_T m0_6[BIAS_M0_SIZE3];
+        m0_T m0_6[POSE_PE3][BIAS_M0_SIZE3];
         ofstream fpblk2m3("..\\Test\\blk2m3.txt", ios::out);
         if (!fpblk2m3)
             cout << "no such file" << endl;
@@ -570,10 +580,10 @@ int main() {
             for (int p = 0 ; p < POSE_PE3; ++p) {
                 temp_m((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT)
                     = M0[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
+                m0_6[p][rep] = M0[parm_size_debug[i + 1].b3 + rep * POSE_PE3 + p];
                 cout << hex;
             }
             fpblk2m3 << temp_m << "  " << endl;
-            m0_6[rep] = temp_m;
         }
         fpblk2m3.close();
 
