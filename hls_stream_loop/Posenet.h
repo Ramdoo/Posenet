@@ -2,6 +2,8 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 #include <hls_video.h>
+#include <stdio.h>
+#include <string.h>
 
 //#define DEBUG
 
@@ -178,7 +180,7 @@ typedef ap_int<POSE_SIMD3*POSE_W_BIT>           wgt3_T;
 typedef ap_int<16*POSE_W_BIT>                   wgt16_T;
 typedef ap_int<8*POSE_BIAS_BIT>                 bias8_T;
 typedef ap_int<POSE_MUL_BIT>                    mul_T;
-typedef ap_uint<16*POSE_M0_BIT>                 m16_T;
+typedef ap_uint<8*POSE_M0_BIT>                  m8_T;
 typedef ap_int<POSE_BIAS_BIT>                   bias_T;
 typedef ap_uint<POSE_M0_BIT>                    m0_T;
 

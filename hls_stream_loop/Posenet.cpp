@@ -396,13 +396,9 @@ void PosenetAlpha(
 #ifdef DEBUG
         stream<addfm_T> &add_out,
 #endif
-        wgt16_T * weight,  bias8_T* bias,  m16_T* m0
+        wgt16_T* weight, bias8_T* bias, m8_T* m0
 ) {
 
-//#pragma HLS INTERFACE axis port=in
-//#pragma HLS INTERFACE axis port=out
-//#pragma HLS INTERFACE axis port=add_in
-//#pragma HLS INTERFACE axis port=add_flag
 #pragma HLS INTERFACE axis register both port=in
 #pragma HLS INTERFACE axis register both port=out
 #pragma HLS INTERFACE axis register both port=add_in
