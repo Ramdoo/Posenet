@@ -22,9 +22,9 @@ void LoadWgt2(wgt16_T* weight, wgt2_T wgt2[WGT_SIZE2], unsigned iter_block, bool
     for (int rep = 0; rep < config[iter_block].ic_nums2*48*3*3/POSE_SIMD2; ++rep) {
         ap_int<POSE_SIMD2*POSE_W_BIT> temp_wgt_simd;
         for (int p = 0; p < POSE_SIMD2/16; ++p) {
-            ap_int<16*POSE_W_BIT> data;
+            wgt16_T data;
             memcpy(&data, weight+parm_size[iter_block].w2+rep*POSE_SIMD2+p, POSE_SIMD2*sizeof(ap_int<POSE_W_BIT>));
-            temp_wgt_simd((p+1)*16*POSE_W_BIT-1, p*16*POSE_W_BIT);
+            temp_wgt_simd((p+1)*16*POSE_W_BIT-1, p*16*POSE_W_BIT) = data;
         }
         wgt2[rep] = temp_wgt_simd;
     }
