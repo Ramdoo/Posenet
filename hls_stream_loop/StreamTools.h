@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ap_int.h"
-#include "hls_stream.h"
+#include "Posenet.h"
 
 using namespace std;
 using namespace hls;
