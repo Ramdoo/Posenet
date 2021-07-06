@@ -87,7 +87,6 @@ void PosenetHeadResize(
     stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
 #pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
 
-    //TODO:
     FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
             (resize_stream, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
@@ -189,7 +188,6 @@ void PosenetHead(
     stream<ap_int<POSE_HCV0_OUTCH*POSE_OUT_BIT>> cv0_out("cv0_out");
 #pragma HLS RESOURCE variable=cv0_out core=FIFO_SRL
 
-    //TODO:
     FirstLayerT<POSE_HCV0_ROW,POSE_HCV0_COL,POSE_HCV0_INCH,POSE_IN_BIT, POSE_HCV0_OUTCH,POSE_OUT_BIT,
             POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,3,2,POSE_HCV0_SIMD,POSE_HCV0_PE,16, WGT_HCV0_SIZE, BIAS_M0_HCV0_SIZE>
             (in, cv0_out, hcv0_w, hcv0_bias, hcv0_m0, preprocess_m0, preprocess_const0_16);
@@ -407,24 +405,41 @@ void PosenetAlpha(
 #pragma HLS INTERFACE m_axi depth=994   port=bias   offset=direct bundle=bias
 #pragma HLS INTERFACE m_axi depth=497   port=m0     offset=direct bundle=m0
 
-    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1[2][WGT_SIZE1][POSE_PE1];
-    ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2[2][WGT_SIZE2];
-    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3[2][WGT_SIZE3][POSE_PE1];
-    ap_int<POSE_BIAS_BIT> bias1[2][POSE_PE1][BIAS_M0_SIZE1];
-    ap_int<POSE_BIAS_BIT> bias2[2][POSE_PE2][BIAS_M0_SIZE2];
-    ap_int<POSE_BIAS_BIT> bias3[2][POSE_PE3][BIAS_M0_SIZE3];
-    ap_uint<POSE_M0_BIT>  m0_1[2][POSE_PE1][BIAS_M0_SIZE1];
-    ap_uint<POSE_M0_BIT>  m0_2[2][POSE_PE2][BIAS_M0_SIZE2];
-    ap_uint<POSE_M0_BIT>  m0_3[2][POSE_PE3][BIAS_M0_SIZE3];
-#pragma HLS ARRAY_PARTITION variable=wgt1 complete dim=3
-#pragma HLS ARRAY_PARTITION variable=wgt3 complete dim=3
-#pragma HLS ARRAY_PARTITION variable=bias1 complete dim=2
-#pragma HLS ARRAY_PARTITION variable=bias2 complete dim=2
-#pragma HLS ARRAY_PARTITION variable=bias3 complete dim=2
-#pragma HLS ARRAY_PARTITION variable=m0_1 complete dim=2
-#pragma HLS ARRAY_PARTITION variable=m0_2 complete dim=2
-#pragma HLS ARRAY_PARTITION variable=m0_3 complete dim=2
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_ping[WGT_SIZE1][POSE_PE1];
+    ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_ping[WGT_SIZE2];
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_ping[WGT_SIZE3][POSE_PE1];
+    ap_int<POSE_BIAS_BIT> bias1_ping[POSE_PE1][BIAS_M0_SIZE1];
+    ap_int<POSE_BIAS_BIT> bias2_ping[POSE_PE2][BIAS_M0_SIZE2];
+    ap_int<POSE_BIAS_BIT> bias3_ping[POSE_PE3][BIAS_M0_SIZE3];
+    ap_uint<POSE_M0_BIT>  m0_1_ping[POSE_PE1][BIAS_M0_SIZE1];
+    ap_uint<POSE_M0_BIT>  m0_2_ping[POSE_PE2][BIAS_M0_SIZE2];
+    ap_uint<POSE_M0_BIT>  m0_3_ping[POSE_PE3][BIAS_M0_SIZE3];
+#pragma HLS ARRAY_PARTITION variable=wgt1_ping complete dim=2
+#pragma HLS ARRAY_PARTITION variable=wgt3_ping complete dim=2
+#pragma HLS ARRAY_PARTITION variable=bias1_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias2_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias3_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_1_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_2_ping complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_3_ping complete dim=1
 
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt1_pong[WGT_SIZE1][POSE_PE1];
+    ap_int<POSE_SIMD2*POSE_W_BIT>  wgt2_pong[WGT_SIZE2];
+    ap_int<POSE_SIMD1*POSE_W_BIT>  wgt3_pong[WGT_SIZE3][POSE_PE1];
+    ap_int<POSE_BIAS_BIT> bias1_pong[POSE_PE1][BIAS_M0_SIZE1];
+    ap_int<POSE_BIAS_BIT> bias2_pong[POSE_PE2][BIAS_M0_SIZE2];
+    ap_int<POSE_BIAS_BIT> bias3_pong[POSE_PE3][BIAS_M0_SIZE3];
+    ap_uint<POSE_M0_BIT>  m0_1_pong[POSE_PE1][BIAS_M0_SIZE1];
+    ap_uint<POSE_M0_BIT>  m0_2_pong[POSE_PE2][BIAS_M0_SIZE2];
+    ap_uint<POSE_M0_BIT>  m0_3_pong[POSE_PE3][BIAS_M0_SIZE3];
+#pragma HLS ARRAY_PARTITION variable=wgt1_pong complete dim=2
+#pragma HLS ARRAY_PARTITION variable=wgt3_pong complete dim=2
+#pragma HLS ARRAY_PARTITION variable=bias1_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias2_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bias3_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_1_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_2_pong complete dim=1
+#pragma HLS ARRAY_PARTITION variable=m0_3_pong complete dim=1
 
 #pragma HLS ALLOCATION instances=PosenetBlockAlpha	 limit=1 function
 #pragma HLS ALLOCATION instances=LoadWgt1    limit=1 function
@@ -437,15 +452,16 @@ void PosenetAlpha(
 #pragma HLS ALLOCATION instances=LoadM2      limit=1 function
 #pragma HLS ALLOCATION instances=LoadM3      limit=1 function
 
-    LoadWgt1(weight, wgt1[0], 0, true);
-    LoadBias1(bias, bias1[0], 0, true);
-    LoadM1(m0, m0_1[0], 0, true);
-    LoadWgt2(weight, wgt2[0], 0, true);
-    LoadBias2(bias, bias2[0], 0, true);
-    LoadM2(m0, m0_2[0], 0, true);
-    LoadWgt3(weight, wgt3[0], 0, true);
-    LoadBias3(bias, bias3[0], 0, true);
-    LoadM3(m0, m0_3[0], 0, true);
+    //TODO: Load ping
+    LoadWgt1(weight, wgt1_ping, 0, true);
+    LoadBias1(bias, bias1_ping, 0, true);
+    LoadM1(m0, m0_1_ping, 0, true);
+    LoadWgt2(weight, wgt2_ping, 0, true);
+    LoadBias2(bias, bias2_ping, 0, true);
+    LoadM2(m0, m0_2_ping, 0, true);
+    LoadWgt3(weight, wgt3_ping, 0, true);
+    LoadBias3(bias, bias3_ping, 0, true);
+    LoadM3(m0, m0_3_ping, 0, true);
     for (ap_uint<8> iter_block = 0; iter_block < BLOCK_NUMS; ++iter_block) {
         ap_uint<8> ROW1 = config[iter_block].ih;
         ap_uint<8> ROW2 = config[iter_block].ih;
@@ -467,29 +483,57 @@ void PosenetAlpha(
         raw_add_flag(5,1) = iter_block;
         add_flag.write(raw_add_flag);
 
-        PosenetBlockAlpha(in, out, add_in,
+        if (iter_block[0]) {
+            PosenetBlockAlpha(in, out, add_in,
+#ifdef DEBUG
+            add_out,
+#endif
+            wgt1_ping, wgt2_ping, wgt3_ping,
+            bias1_ping, bias2_ping, bias3_ping,
+            m0_1_ping, m0_2_ping, m0_3_ping,
+            ROW1, ROW2, ROW3, COL1, COL2, COL3,
+            INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+            STRIDE, IS_ADD
+#ifdef DEBUG
+            , NEXT_ADD
+#endif
+            );
+            //TODO: Load pong
+            LoadWgt1(weight,  wgt1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias1(bias,  bias1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM1(      m0,  m0_1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt2(weight,  wgt2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias2(bias,  bias2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM2(      m0,  m0_2_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt3(weight,  wgt3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias3(bias,  bias3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM3(      m0,  m0_3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
+        } else {
+            PosenetBlockAlpha(in, out, add_in,
 #ifdef DEBUG
                 add_out,
 #endif
-                          wgt1[iter_block[0]], wgt2[iter_block[0]], wgt3[iter_block[0]],
-                          bias1[iter_block[0]], bias2[iter_block[0]], bias3[iter_block[0]],
-                          m0_1[iter_block[0]], m0_2[iter_block[0]], m0_3[iter_block[0]],
-                          ROW1, ROW2, ROW3, COL1, COL2, COL3,
-                          INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
-                          STRIDE, IS_ADD
+                wgt1_pong, wgt2_pong, wgt3_pong,
+                bias1_pong, bias2_pong, bias3_pong,
+                m0_1_pong, m0_2_pong, m0_3_pong,
+                ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+                STRIDE, IS_ADD
 #ifdef DEBUG
-                , NEXT_ADD
+                    , NEXT_ADD
 #endif
-        );
-        LoadWgt1(weight, wgt1[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadBias1(bias, bias1[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadM1(m0, m0_1[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadWgt2(weight, wgt2[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadBias2(bias, bias2[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadM2(m0, m0_2[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadWgt3(weight, wgt3[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadBias3(bias, bias3[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
-        LoadM3(m0, m0_3[~iter_block[0]], iter_block+1, iter_block != (BLOCK_NUMS-1));
+            );
+            //TODO: Load ping
+            LoadWgt1(weight,  wgt1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias1(bias,  bias1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM1(      m0,  m0_1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt2(weight,  wgt2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias2(bias,  bias2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM2(      m0,  m0_2_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadWgt3(weight,  wgt3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadBias3(bias,  bias3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+            LoadM3(      m0,  m0_3_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
+        }
     }
 
 }
