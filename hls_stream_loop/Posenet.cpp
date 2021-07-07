@@ -492,7 +492,7 @@ void PosenetAlpha(
             bias1_ping, bias2_ping, bias3_ping,
             m0_1_ping, m0_2_ping, m0_3_ping,
             ROW1, ROW2, ROW3, COL1, COL2, COL3,
-            INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+            INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
             STRIDE, IS_ADD
 #ifdef DEBUG
             , NEXT_ADD
@@ -517,7 +517,7 @@ void PosenetAlpha(
                 bias1_pong, bias2_pong, bias3_pong,
                 m0_1_pong, m0_2_pong, m0_3_pong,
                 ROW1, ROW2, ROW3, COL1, COL2, COL3,
-                INCH_NUMS1, CH_NUMS2*3, CH_NUMS2, CH_NUMS2*3, OUTCH_NUMS3,
+                INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
                 STRIDE, IS_ADD
 #ifdef DEBUG
                     , NEXT_ADD
