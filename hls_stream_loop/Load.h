@@ -62,7 +62,7 @@ void LoadBias2(bias8_T* bias, bias_T bias2[POSE_PE2][BIAS_M0_SIZE2], unsigned it
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
         for (int iter_p = 0; iter_p < POSE_PE2/8; ++iter_p) {
             bias8_T data;
-            memcpy(&data, bias+parm_size[iter_block].b2+rep*3+iter_p, 8*sizeof(bias_T));
+            memcpy(&data, bias+parm_size[iter_block].b2+rep*6+iter_p, 8*sizeof(bias_T));
             for (int pe = 0; pe < 8; ++pe) {
                 bias2[iter_p*8+pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
             }
@@ -89,7 +89,7 @@ void LoadM1(m8_T* m0, m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1], unsigned iter_block, b
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE1; ++rep) {
         ap_uint<POSE_PE1*POSE_M0_BIT> data;
-        memcpy(&data, m0+parm_size[iter_block].m1+rep, POSE_PE1* sizeof(m0_T));
+        memcpy(&data, m0+parm_size[iter_block].b1+rep, POSE_PE1* sizeof(m0_T));
         for (int p = 0; p < POSE_PE1; ++p) {
             m0_1[p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
         }
@@ -103,9 +103,9 @@ void LoadM2(m8_T* m0, m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2], unsigned iter_block, b
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
         for(int iter_p = 0; iter_p < POSE_PE2/8; ++iter_p) {
             m8_T data;
-            memcpy(&data, m0+parm_size[iter_block].m1+rep, 8*sizeof(m0_T));
+            memcpy(&data, m0+parm_size[iter_block].b2+rep*6+iter_p, 8*sizeof(m0_T));
             for (int p = 0; p < 8; ++p) {
-                m0_2[iter_p+8+p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
+                m0_2[iter_p*8+p][rep] = data((p+1)*POSE_M0_BIT-1, p*POSE_M0_BIT);
             }
         }
     }

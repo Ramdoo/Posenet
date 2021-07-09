@@ -323,12 +323,10 @@ void PosenetBlockAlpha(
         cout << "no such file" << endl;
     for (int h = 0; h < ROW3; ++h) {
         for (int w = 0; w < COL3 ; ++w) {
-            for (int nums = 0; nums < 3; nums++) {
-                ap_int<POSE_OUT_CH * POSE_IN_BIT> temp = dw2_out.read();
-                for (int ch = 0; ch < POSE_OUT_CH; ++ch) {
-                    cout << dec;
-                    fpblk1cv2 << dec << ap_int<8>(temp((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
-                }
+            ap_int<POSE_INTER_CH * POSE_IN_BIT> data = dw2_out.read();
+            for (int ch = 0; ch < POSE_INTER_CH; ++ch) {
+                cout << dec;
+                fpblk1cv2 << dec << ap_int<8>(data((ch + 1) * POSE_IN_BIT - 1, ch * POSE_IN_BIT)) << "  ";
             }
             fpblk1cv2 << endl;
         }
@@ -348,7 +346,7 @@ void PosenetBlockAlpha(
              );
 #if 0
     cout << dec << "out size: " << out.size() << endl;
-    ofstream fpblk1cv3("..\\Test\\blk1cv3.txt", ios::out);
+    ofstream fpblk1cv3("..\\Test\\blk2cv3.txt", ios::out);
     if (!fpblk1cv3)
         cout << "no such file" << endl;
     for (int h = 0; h < ROW3; ++h) {
@@ -483,7 +481,7 @@ void PosenetAlpha(
         raw_add_flag(5,1) = iter_block;
         add_flag.write(raw_add_flag);
 
-        if (iter_block[0]) {
+        if (~iter_block[0]) {
             PosenetBlockAlpha(in, out, add_in,
 #ifdef DEBUG
             add_out,

@@ -318,8 +318,8 @@ void PwcvMatrixVectorActUnit(
             for (unsigned p = 0; p < PE; ++p) {
                 cout << dec << p << ": " << out_buf((p+1)*OUT_BIT-1, p*OUT_BIT)
                 << ", acc["<< p << "]: " << acc[p]
-                << ", bias: " << bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT))
-                << ", m0: " << m0_buf((p<<LOG_M0_BIT)+(M0_BIT-1), (p<<LOG_M0_BIT)) << endl;
+                << ", bias: " << bias[p][out_fold_cnt]
+                << ", m0: " << m0[p][out_fold_cnt] << endl;
             }
             cout << endl;
 #endif
@@ -434,14 +434,14 @@ void DwcvMatrixVectorActUnit(
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$n" << endl;
             cout << dec << "BIAS_BIT:" << BIAS_BIT << endl;
-            cout << hex << "bias_buf: " << bias_buf << endl;
-            cout << hex << "m0_buf: " << m0_buf << endl;
+//            cout << hex << "bias_buf: " << bias[p][] << endl;
+//            cout << hex << "m0_buf: " << m0_buf << endl;
             cout << "out_buf: " << endl;
             for (unsigned p = 0; p < PE; ++p) {
                 cout << dec << p << ": " << ap_int<OUT_BIT>(out_buf((p+1)*OUT_BIT-1, p*OUT_BIT))
                      << ", acc["<< p << "]: " << acc[p]
-                     << ", bias: " << ap_int<BIAS_BIT>(bias_buf((p<<LOG_BIAS_BIT)+(BIAS_BIT-1), (p<<LOG_BIAS_BIT)))
-                     << ", m0: "   << ap_uint<M0_BIT>(m0_buf(  (p<<LOG_M0_BIT)  +(M0_BIT-1),   (p<<LOG_M0_BIT))) << endl;
+                     << ", bias: " << ap_int<BIAS_BIT>(bias[p][out_fold_cnt])
+                     << ", m0: "   << ap_uint<M0_BIT>(m0[p][out_fold_cnt]) << endl;
             }
             cout << endl;
 #endif
