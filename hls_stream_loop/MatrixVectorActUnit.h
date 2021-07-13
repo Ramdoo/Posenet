@@ -1345,7 +1345,7 @@ template<
 >
 void LastPwcvMatrixVectorUnitT(
         stream<ap_int<SIMD*IN_BIT>> &in_fm,
-        stream<ap_int<PE*OUT_BIT>> &out_fm,
+        stream<ap_uint<PE*OUT_BIT>> &out_fm,
         const ap_int<SIMD*W_BIT> weights[PE][WGT_ARRAYSIZE],
         const ap_int<BIAS_BIT> bias[PE][BIAS_M0_ARRAYSIZE],
         const ap_uint<M0_BIT> m0[PE][BIAS_M0_ARRAYSIZE]
@@ -1372,8 +1372,10 @@ void LastPwcvMatrixVectorUnitT(
 #pragma HLS ARRAY_PARTITION variable=acc complete dim=0
     ap_int<MUL_BIT> max_acc[PE];// = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 #pragma HLS ARRAY_PARTITION variable=max_acc complete dim=0
-    ap_int<OUT_BIT> max_pos[PE];// = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-#pragma HLS ARRAY_PARTITION variable=max_pos complete dim=0
+    ap_uint<8> max_x[PE];// = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_x complete dim=0
+    ap_uint<8> max_y[PE];// = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+#pragma HLS ARRAY_PARTITION variable=max_y complete dim=0
 
     for (unsigned rep = 0; rep < total_reps; ++rep) {
 #pragma HLS PIPELINE II=1
@@ -1423,11 +1425,6 @@ void LastPwcvMatrixVectorUnitT(
         ++in_fold_cnt;
         if (in_fold_cnt == INPUT_FOLD) {
             in_fold_cnt = 0;
-//            ap_int<PE*OUT_BIT> out_buf;
-//            for (ap_uint<8> p = 0; p < PE; ++p) {
-//#pragma HLS UNROLL
-//                out_buf( (p<<LOG_OUT_BIT)+(OUT_BIT-1), (p<<LOG_OUT_BIT)) = acc[p];
-//            }
 #if MVAU_DEBUG
             cout << "$$$$$$$$$$$$$$$\nout_buf: " << endl;
             for (unsigned p = 0; p < PE; ++p) {
@@ -1437,9 +1434,8 @@ void LastPwcvMatrixVectorUnitT(
             }
             cout << endl;
 #endif
-            //out_fm.write(out_buf);
 #if MVAU_DEBUG
-            cout << hex << "out_but: " << out_buf << endl;
+            cout << hex << "out_buf: " << out_buf << endl;
 #endif
             ++out_fold_cnt;
             if (out_fold_cnt == OUTPUT_FOLE) {
@@ -1448,19 +1444,23 @@ void LastPwcvMatrixVectorUnitT(
                 for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
                     if (max_acc[p] < acc[p]) {
-                        max_acc[p] = acc[p];
-                        max_pos[p] = vect_num;
                         //cout << "Compare p:" << p << ", vect_num: " << vect_num << ", " << max_acc[p] << " vs " << acc[p] << endl;
+                        max_acc[p] = acc[p];
+                        max_x[p] = (vect_num%48)*4;
+                        max_y[p] = (vect_num/48)*4;
                     }
                 }
                 ++vect_num;
                 if (vect_num == VECT_NUMS) {
-                    ap_int<PE*OUT_BIT> out_buf;
+                    ap_uint<PE*OUT_BIT> out_buf;
                     for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
-                        //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_pos:" << max_pos[p] << endl;
+                        //cout << dec << "max_acc[" << p << "]: " << max_acc[p] << ", max_x:" << max_x[p] << ", max_y:" << max_y[p] << endl;
                         if (max_acc[p] > m0[p][0]) {
-                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = max_pos[p];
+                            ap_uint<OUT_BIT> temp_out;
+                            temp_out(7,0) = max_y[p];
+                            temp_out(15,8) = max_x[p];
+                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = temp_out;
                             //cout << hex << out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) << endl;
                         } else {
                             out_buf = 0;

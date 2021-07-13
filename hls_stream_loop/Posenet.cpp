@@ -269,9 +269,6 @@ void PosenetHead(
 void PosenetBlockAlpha(
         stream<infm_T> &in,        stream<outfm_T> &out,
         stream<addfm_T> &add_in,
-#ifdef DEBUG
-        stream<addfm_T> &add_out,
-#endif
         wgt1_T wgt1[WGT_SIZE1][POSE_PE1],        wgt2_T wgt2[WGT_SIZE2],                 wgt3_T wgt3[WGT_SIZE3][POSE_PE3],
         bias_T bias1[POSE_PE1][BIAS_M0_SIZE1],   bias_T bias2[POSE_PE2][BIAS_M0_SIZE2],  bias_T bias3[POSE_PE3][BIAS_M0_SIZE3],
         m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1],      m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2],     m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3],
@@ -280,9 +277,6 @@ void PosenetBlockAlpha(
         ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
         ap_uint<4> INCH_NUMS3, ap_uint<4> OUTCH_NUMS3, ap_uint<2> STRIDE,
         ap_uint<1> IS_ADD
-#ifdef DEBUG
-,     ap_uint<1> NEXT_ADD
-#endif
 ) {
 #pragma HLS DATAFLOW
 
@@ -335,15 +329,7 @@ void PosenetBlockAlpha(
 #endif
 
     PwConvAddLayer<POSE_INTER_CH,POSE_IN_BIT,POSE_OUT_CH,POSE_OUT_BIT,POSE_W_BIT,POSE_MUL_BIT,POSE_BIAS_BIT,POSE_M0_BIT,1,POSE_SIMD3,POSE_PE3,16>
-            (dw2_out, out, add_in,
-#ifdef DEBUG
-             add_out,
-#endif
-             wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD
-#ifdef DEBUG
-             , NEXT_ADD
-#endif
-             );
+            (dw2_out, out, add_in, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD);
 #if 0
     cout << dec << "out size: " << out.size() << endl;
     ofstream fpblk1cv3("..\\Test\\blk2cv3.txt", ios::out);
@@ -389,9 +375,6 @@ void PosenetBlockAlpha(
 void PosenetAlpha(
         stream<infm_T> &in,       stream<outfm_T> &out,
         stream<addfm_T> &add_in,  stream<ap_uint<8>> &add_flag,
-#ifdef DEBUG
-        stream<addfm_T> &add_out,
-#endif
         wgt16_T* weight, bias8_T* bias, m8_T* m0
 ) {
 
@@ -453,13 +436,13 @@ void PosenetAlpha(
     //TODO: Load ping
     LoadWgt1(weight, wgt1_ping, 0, true);
     LoadBias1(bias, bias1_ping, 0, true);
-    LoadM1(m0, m0_1_ping, 0, true);
+    LoadM1(      m0, m0_1_ping, 0, true);
     LoadWgt2(weight, wgt2_ping, 0, true);
     LoadBias2(bias, bias2_ping, 0, true);
-    LoadM2(m0, m0_2_ping, 0, true);
+    LoadM2(      m0, m0_2_ping, 0, true);
     LoadWgt3(weight, wgt3_ping, 0, true);
     LoadBias3(bias, bias3_ping, 0, true);
-    LoadM3(m0, m0_3_ping, 0, true);
+    LoadM3(      m0, m0_3_ping, 0, true);
     for (ap_uint<8> iter_block = 0; iter_block < BLOCK_NUMS; ++iter_block) {
         ap_uint<8> ROW1 = config[iter_block].ih;
         ap_uint<8> ROW2 = config[iter_block].ih;
@@ -483,18 +466,12 @@ void PosenetAlpha(
 
         if (~iter_block[0]) {
             PosenetBlockAlpha(in, out, add_in,
-#ifdef DEBUG
-            add_out,
-#endif
-            wgt1_ping, wgt2_ping, wgt3_ping,
-            bias1_ping, bias2_ping, bias3_ping,
-            m0_1_ping, m0_2_ping, m0_3_ping,
-            ROW1, ROW2, ROW3, COL1, COL2, COL3,
-            INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
-            STRIDE, IS_ADD
-#ifdef DEBUG
-            , NEXT_ADD
-#endif
+                              wgt1_ping, wgt2_ping, wgt3_ping,
+                              bias1_ping, bias2_ping, bias3_ping,
+                              m0_1_ping, m0_2_ping, m0_3_ping,
+                              ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                              INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
+                              STRIDE, IS_ADD
             );
             //TODO: Load pong
             LoadWgt1(weight,  wgt1_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
@@ -508,18 +485,12 @@ void PosenetAlpha(
             LoadM3(      m0,  m0_3_pong, iter_block+1, iter_block != (BLOCK_NUMS-1));
         } else {
             PosenetBlockAlpha(in, out, add_in,
-#ifdef DEBUG
-                add_out,
-#endif
-                wgt1_pong, wgt2_pong, wgt3_pong,
-                bias1_pong, bias2_pong, bias3_pong,
-                m0_1_pong, m0_2_pong, m0_3_pong,
-                ROW1, ROW2, ROW3, COL1, COL2, COL3,
-                INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
-                STRIDE, IS_ADD
-#ifdef DEBUG
-                    , NEXT_ADD
-#endif
+                              wgt1_pong, wgt2_pong, wgt3_pong,
+                              bias1_pong, bias2_pong, bias3_pong,
+                              m0_1_pong, m0_2_pong, m0_3_pong,
+                              ROW1, ROW2, ROW3, COL1, COL2, COL3,
+                              INCH_NUMS1, CH_NUMS2, CH_NUMS2, CH_NUMS2, OUTCH_NUMS3,
+                              STRIDE, IS_ADD
             );
             //TODO: Load ping
             LoadWgt1(weight,  wgt1_ping, iter_block+1, iter_block != (BLOCK_NUMS-1));
@@ -538,7 +509,7 @@ void PosenetAlpha(
 
 
 void PosenetDecv(
-        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_int<POSE_CV7_OUTCH * 16>> &out
+        stream<ap_int<POSE_IN_CH*POSE_IN_BIT>> &in, stream<ap_uint<POSE_CV7_OUTCH * 16>> &out
 ) {
 #pragma HLS DATAFLOW
 

@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-//#define DEBUG
 
 #define IN_IMAGE_WIDTH  480
 #define IN_IMAGE_HEIGHT 640
@@ -193,10 +192,7 @@ typedef ap_int<POSE_PE3*POSE_BIAS_BIT>          bias3_pe_T;
 typedef ap_uint<POSE_PE1*POSE_M0_BIT>           m0_1pe_T;
 typedef ap_uint<POSE_PE2*POSE_M0_BIT>           m0_2pe_T;
 typedef ap_uint<POSE_PE3*POSE_M0_BIT>           m0_3pe_T;
-typedef ap_int<POSE_INTER_CH*POSE_BIAS_BIT>     bias_dw_T;
-typedef ap_uint<POSE_INTER_CH*POSE_M0_BIT>      m0_dw_T;
 
-typedef ap_uint<INST_WIDTH>                             inst_T;
 
 
 // ************************************************************************* //

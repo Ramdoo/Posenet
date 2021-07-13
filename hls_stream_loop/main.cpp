@@ -208,9 +208,9 @@ int main() {
 
     stream<ap_uint<POSE_HCV0_INCH*POSE_IN_BIT>> in("testin");
     int8_t * img = (int8_t *) malloc(256*192*3* sizeof(int8_t));
-    ReadData8(".\\data\\input_256x192_0_255.bin", (char*)img, 256*192*3);
+    ReadData8("..\\data\\input_256x192_0_255.bin", (char*)img, 256*192*3);
 
-    ofstream fpconv0in(".\\Test\\hconv0in.txt", ios::out);
+    ofstream fpconv0in("..\\Test\\hconv0in.txt", ios::out);
     if (!fpconv0in)
         cout << "no such file" << endl;
     for (int h = 0; h < POSE_HCV0_ROW; ++h) {
@@ -239,14 +239,14 @@ int main() {
     int32_t *BIAS  = (int32_t *)  malloc(7952*   sizeof(int32_t));
     uint16_t *M0   = (uint16_t *) malloc(7952*   sizeof(uint16_t));
 
-    ReadData8(".\\data\\weight.bin", (char *) WEIGHT, 464016);
-    ReadData32(".\\data\\bias.bin", (char *) BIAS, 7952);
-    ReadData16(".\\data\\M0.bin", (char *)M0, 7952);
+    ReadData8("..\\data\\weight.bin", (char *) WEIGHT, 464016);
+    ReadData32("..\\data\\bias.bin", (char *) BIAS, 7952);
+    ReadData16("..\\data\\M0.bin", (char *)M0, 7952);
 
     for (int i = 0; i < 16; i=i+2) {
 
         wgt1_T wgt1[WGT_SIZE1][POSE_PE1];
-        ofstream fpblk1wgt1(".\\Test\\blk1wgt1.txt", ios::out);
+        ofstream fpblk1wgt1("..\\Test\\blk1wgt1.txt", ios::out);
         if (!fpblk1wgt1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums1*config[i].ic_nums2*48*16/POSE_SIMD1/POSE_PE1; ++rep) {
@@ -266,7 +266,7 @@ int main() {
         fpblk1wgt1.close();
 
         wgt2_T wgt2[WGT_SIZE2];
-        ofstream fpblk1wgt2(".\\Test\\blk1wgt2.txt", ios::out);
+        ofstream fpblk1wgt2("..\\Test\\blk1wgt2.txt", ios::out);
         if (!fpblk1wgt2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48*3*3/POSE_SIMD2; ++rep) {
@@ -283,7 +283,7 @@ int main() {
 
         //stream<wgt3_pe_T> wgt3("wgt3");
         wgt3_T wgt3[WGT_SIZE3][POSE_PE3];
-        ofstream fpblk1wgt3(".\\Test\\blk1wgt3.txt", ios::out);
+        ofstream fpblk1wgt3("..\\Test\\blk1wgt3.txt", ios::out);
         if (!fpblk1wgt3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*config[i].oc_nums3*48*16/POSE_SIMD3/POSE_PE3; ++rep) {
@@ -303,7 +303,7 @@ int main() {
 
 
         bias_T bias1[POSE_PE1][BIAS_M0_SIZE1];
-        ofstream fpblk1bias1(".\\Test\\blk1bias1.txt", ios::out);
+        ofstream fpblk1bias1("..\\Test\\blk1bias1.txt", ios::out);
         if (!fpblk1bias1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48/POSE_PE1; ++rep) {
@@ -320,7 +320,7 @@ int main() {
         fpblk1bias1.close();
 
         bias_T bias2[POSE_PE2][BIAS_M0_SIZE2];
-        ofstream fpblk1bias2(".\\Test\\blk1bias2.txt", ios::out);
+        ofstream fpblk1bias2("..\\Test\\blk1bias2.txt", ios::out);
         if (!fpblk1bias2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48/POSE_PE2; ++rep) {
@@ -337,7 +337,7 @@ int main() {
         fpblk1bias2.close();
 
         bias_T bias3[POSE_PE3][BIAS_M0_SIZE3];
-        ofstream fpblk1bias3(".\\Test\\blk1bias3.txt", ios::out);
+        ofstream fpblk1bias3("..\\Test\\blk1bias3.txt", ios::out);
         if (!fpblk1bias3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].oc_nums3*16/POSE_PE3; ++rep) {
@@ -354,7 +354,7 @@ int main() {
         fpblk1bias3.close();
 
         m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1];
-        ofstream fpblk1m1(".\\Test\\blk1m1.txt", ios::out);
+        ofstream fpblk1m1("..\\Test\\blk1m1.txt", ios::out);
         if (!fpblk1m1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48/POSE_PE1; ++rep) {
@@ -370,7 +370,7 @@ int main() {
         fpblk1m1.close();
 
         m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2];
-        ofstream fpblk1m2(".\\Test\\blk1m2.txt", ios::out);
+        ofstream fpblk1m2("..\\Test\\blk1m2.txt", ios::out);
         if (!fpblk1m2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].ic_nums2*48/POSE_PE2; ++rep) {
@@ -386,7 +386,7 @@ int main() {
         fpblk1m2.close();
 
         m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3];
-        ofstream fpblk1m3(".\\Test\\blk1m3.txt", ios::out);
+        ofstream fpblk1m3("..\\Test\\blk1m3.txt", ios::out);
         if (!fpblk1m3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i].oc_nums3*16/POSE_PE3; ++rep) {
@@ -425,7 +425,7 @@ int main() {
 
 
         wgt1_T wgt4[WGT_SIZE1][POSE_PE1];
-        ofstream fpblk2wgt1(".\\Test\\blk2wgt1.txt", ios::out);
+        ofstream fpblk2wgt1("..\\Test\\blk2wgt1.txt", ios::out);
         if (!fpblk2wgt1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums1*config[i+1].ic_nums2*48*16/POSE_SIMD1/POSE_PE1; ++rep) {
@@ -446,7 +446,7 @@ int main() {
         fpblk2wgt1.close();
 
         wgt2_T wgt5[WGT_SIZE2];
-        ofstream fpblk2wgt2(".\\Test\\blk2wgt2.txt", ios::out);
+        ofstream fpblk2wgt2("..\\Test\\blk2wgt2.txt", ios::out);
         if (!fpblk2wgt2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*48*3*3/POSE_SIMD2; ++rep) {
@@ -462,7 +462,7 @@ int main() {
         fpblk2wgt2.close();
 
         wgt3_T wgt6[WGT_SIZE3][POSE_PE3];
-        ofstream fpblk2wgt3(".\\Test\\blk2wgt3.txt", ios::out);
+        ofstream fpblk2wgt3("..\\Test\\blk2wgt3.txt", ios::out);
         if (!fpblk2wgt3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*config[i+1].oc_nums3*48*16/POSE_SIMD3/POSE_PE3; ++rep) {
@@ -482,7 +482,7 @@ int main() {
         fpblk2wgt3.close();
 
         bias_T bias4[POSE_PE1][BIAS_M0_SIZE1];
-        ofstream fpblk2bias1(".\\Test\\blk2bias1.txt", ios::out);
+        ofstream fpblk2bias1("..\\Test\\blk2bias1.txt", ios::out);
         if (!fpblk2bias1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*48/POSE_PE1; ++rep) {
@@ -499,7 +499,7 @@ int main() {
         fpblk2bias1.close();
 
         bias_T bias5[POSE_PE2][BIAS_M0_SIZE2];
-        ofstream fpblk2bias2(".\\Test\\blk2bias2.txt", ios::out);
+        ofstream fpblk2bias2("..\\Test\\blk2bias2.txt", ios::out);
         if (!fpblk2bias2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*48/POSE_PE2; ++rep) {
@@ -516,7 +516,7 @@ int main() {
         fpblk2bias2.close();
 
         bias_T bias6[POSE_PE3][BIAS_M0_SIZE3];
-        ofstream fpblk2bias3(".\\Test\\blk2bias3.txt", ios::out);
+        ofstream fpblk2bias3("..\\Test\\blk2bias3.txt", ios::out);
         if (!fpblk2bias3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].oc_nums3*16/POSE_PE3; ++rep) {
@@ -533,7 +533,7 @@ int main() {
         fpblk2bias3.close();
 
         m0_T m0_4[POSE_PE1][BIAS_M0_SIZE1];
-        ofstream fpblk2m1(".\\Test\\blk2m1.txt", ios::out);
+        ofstream fpblk2m1("..\\Test\\blk2m1.txt", ios::out);
         if (!fpblk2m1)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*48/POSE_PE1; ++rep) {
@@ -549,7 +549,7 @@ int main() {
         fpblk2m1.close();
 
         m0_T m0_5[POSE_PE2][BIAS_M0_SIZE2];
-        ofstream fpblk2m2(".\\Test\\blk2m2.txt", ios::out);
+        ofstream fpblk2m2("..\\Test\\blk2m2.txt", ios::out);
         if (!fpblk2m2)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].ic_nums2*48/POSE_PE2; ++rep) {
@@ -565,7 +565,7 @@ int main() {
         fpblk2m2.close();
 
         m0_T m0_6[POSE_PE3][BIAS_M0_SIZE3];
-        ofstream fpblk2m3(".\\Test\\blk2m3.txt", ios::out);
+        ofstream fpblk2m3("..\\Test\\blk2m3.txt", ios::out);
         if (!fpblk2m3)
             cout << "no such file" << endl;
         for (int rep = 0; rep < config[i+1].oc_nums3*16/POSE_PE3; ++rep) {
