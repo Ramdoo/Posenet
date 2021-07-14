@@ -43,42 +43,46 @@ void LoadWgt3(wgt16_T* weight, wgt3_T wgt3[WGT_SIZE3][POSE_PE3], unsigned iter_b
 }
 
 
-void LoadBias1(bias16_T* bias, bias_T bias1[POSE_PE1][BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
+void LoadBias1(bias8_T* bias, bias_T bias1[POSE_PE1][BIAS_M0_SIZE1], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE1; ++rep) {
-        bias16_T data;
-        memcpy(&data, bias+parm_size[iter_block].m1+rep, POSE_PE1*sizeof(bias_T));
-        for (int p = 0; p < POSE_PE1; ++p) {
-            bias1[p][rep] = data((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT);
-        }
-    }
-}
-
-
-void LoadBias2(bias16_T* bias, bias_T bias2[POSE_PE2][BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
-    if (!enable)
-        return;
-    for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
-        for (int iter_p = 0; iter_p < POSE_PE2/16; ++iter_p) {
-            bias16_T data;
-            memcpy(&data, bias+parm_size[iter_block].m2+rep*3+iter_p, 16*sizeof(bias_T));
-            for (int pe = 0; pe < 16; ++pe) {
-                bias2[iter_p*16+pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
+        for (int iter_p = 0; iter_p < POSE_PE1/8; ++iter_p) {
+            bias8_T data;
+            memcpy(&data, bias+parm_size[iter_block].b1+rep*2+iter_p, 8*sizeof(bias_T));
+            for (int p = 0; p < 8; ++p) {
+                bias1[iter_p*8+p][rep] = data((p+1)*POSE_BIAS_BIT-1, p*POSE_BIAS_BIT);
             }
         }
     }
 }
 
 
-void LoadBias3(bias16_T* bias, bias_T bias3[POSE_PE3][BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
+void LoadBias2(bias8_T* bias, bias_T bias2[POSE_PE2][BIAS_M0_SIZE2], unsigned iter_block, bool enable) {
+    if (!enable)
+        return;
+    for (int rep = 0; rep < config[iter_block].ic_nums2*48/POSE_PE2; ++rep) {
+        for (int iter_p = 0; iter_p < POSE_PE2/8; ++iter_p) {
+            bias8_T data;
+            memcpy(&data, bias+parm_size[iter_block].b2+rep*6+iter_p, 8*sizeof(bias_T));
+            for (int pe = 0; pe < 8; ++pe) {
+                bias2[iter_p*8+pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
+            }
+        }
+    }
+}
+
+
+void LoadBias3(bias8_T* bias, bias_T bias3[POSE_PE3][BIAS_M0_SIZE3], unsigned iter_block, bool enable) {
     if (!enable)
         return;
     for (int rep = 0; rep < config[iter_block].oc_nums3*16/POSE_PE3; ++rep) {
-        bias16_T data;
-        memcpy(&data, bias+parm_size[iter_block].m3+rep, POSE_PE3* sizeof(bias_T));
-        for (int pe = 0; pe < POSE_PE3; ++pe) {
-            bias3[pe][rep] = data((pe+1)*POSE_BIAS_BIT-1, pe*POSE_BIAS_BIT);
+        for (int iter_p = 0; iter_p < POSE_PE3/8; ++iter_p) {
+            bias8_T data;
+            memcpy(&data, bias + parm_size[iter_block].b3+rep*2+iter_p, 8 * sizeof(bias_T));
+            for (int pe = 0; pe < POSE_PE3; ++pe) {
+                bias3[iter_p*8+pe][rep] = data((pe + 1) * POSE_BIAS_BIT - 1, pe * POSE_BIAS_BIT);
+            }
         }
     }
 }
