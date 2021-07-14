@@ -375,7 +375,7 @@ void PosenetBlockAlpha(
 void PosenetAlpha(
         stream<infm_T> &in,       stream<outfm_T> &out,
         stream<addfm_T> &add_in,  stream<ap_uint<8>> &add_flag,
-        wgt16_T* weight, bias8_T* bias, m8_T* m0
+        wgt16_T* weight, bias16_T* bias, m16_T* m0
 ) {
 
 #pragma HLS INTERFACE axis register both port=in
