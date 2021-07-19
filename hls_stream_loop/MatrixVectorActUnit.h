@@ -1392,6 +1392,14 @@ void LastPwcvMatrixVectorUnitT(
                 acc[p] = 0;
             }
         }
+        if (vect_num == 0) {
+            for (ap_uint<8> p = 0; p < PE; ++p) {
+#pragma HLS UNROLL
+                max_acc[p] = 0;
+                max_x[p] = 0;
+                max_y[p] = 0;
+            }
+        }
 #if MVAU_DEBUG
         cout << dec << "{\nrep: " << rep << ", "<< "out_fold_cnt: " << out_fold_cnt << ", " << "row_store: " << endl;
         for (unsigned i = 0; i < INPUT_FOLD; ++i) {
@@ -1452,6 +1460,7 @@ void LastPwcvMatrixVectorUnitT(
                 }
                 ++vect_num;
                 if (vect_num == VECT_NUMS) {
+                    vect_num = 0;
                     ap_uint<PE*OUT_BIT> out_buf;
                     for (ap_uint<8> p = 0; p < PE; ++p) {
 #pragma HLS UNROLL
