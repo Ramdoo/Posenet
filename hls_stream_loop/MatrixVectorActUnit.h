@@ -1472,7 +1472,7 @@ void LastPwcvMatrixVectorUnitT(
                             out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = temp_out;
                             //cout << hex << out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) << endl;
                         } else {
-                            out_buf = 0;
+                            out_buf( (p+1)*OUT_BIT-1, p*OUT_BIT) = 0;
                         }
                     }
                     out_fm.write(out_buf);
