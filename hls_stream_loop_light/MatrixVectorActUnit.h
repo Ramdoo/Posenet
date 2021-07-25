@@ -244,7 +244,7 @@ void PwcvMatrixVectorActUnit(
     cout << dec << "total_reps : " << total_reps << endl;
 #endif
 
-    ap_int<SIMD*IN_BIT> row_store[5]; //80/16
+    ap_int<SIMD*IN_BIT> row_store[80/PE]; //80/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;
@@ -626,7 +626,7 @@ void PwcvAddMatrixVectorUnit(
     cout << "total_reps : " << total_reps << endl;
 #endif
 
-    ap_int<SIMD*IN_BIT> row_store[30]; //480/16
+    ap_int<SIMD*IN_BIT> row_store[480/PE]; //480/16
 #pragma HLS RESOURCE variable=row_store core=RAM_2P_BRAM
 
     unsigned in_fold_cnt  = 0;

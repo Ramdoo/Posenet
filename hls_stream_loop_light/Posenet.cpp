@@ -274,8 +274,8 @@ void PosenetBlockAlpha(
         m0_T m0_1[POSE_PE1][BIAS_M0_SIZE1],      m0_T m0_2[POSE_PE2][BIAS_M0_SIZE2],     m0_T m0_3[POSE_PE3][BIAS_M0_SIZE3],
         ap_uint<8> ROW1,       ap_uint<8> ROW2,        ap_uint<8> ROW3,
         ap_uint<8> COL1,       ap_uint<8> COL2,        ap_uint<8> COL3,
-        ap_uint<4> INCH_NUMS1, ap_uint<4> OUTCH_NUMS1, ap_uint<4> CH_NUMS2,
-        ap_uint<4> INCH_NUMS3, ap_uint<4> OUTCH_NUMS3, ap_uint<2> STRIDE,
+        ap_uint<8> INCH_NUMS1, ap_uint<8> OUTCH_NUMS1, ap_uint<8> CH_NUMS2,
+        ap_uint<8> INCH_NUMS3, ap_uint<8> OUTCH_NUMS3, ap_uint<2> STRIDE,
         ap_uint<1> IS_ADD
 ) {
 #pragma HLS DATAFLOW
@@ -287,7 +287,7 @@ void PosenetBlockAlpha(
             (in, pw1_out, wgt1, bias1, m0_1, ROW1, COL1, INCH_NUMS1, OUTCH_NUMS1);
 #if 0
     cout << dec << "pw1_out size: " << pw1_out.size() << endl;
-    ofstream fpblk1cv1("..\\Test\\blk1cv1.txt", ios::out);
+    ofstream fpblk1cv1("..\\Test\\blk11cv1.txt", ios::out);
     if (!fpblk1cv1)
         cout << "no such file" << endl;
     for (int h = 0; h < ROW1; ++h) {
@@ -312,7 +312,7 @@ void PosenetBlockAlpha(
             (pw1_out, dw2_out, wgt2, bias2, m0_2, ROW2, COL2, STRIDE, CH_NUMS2);
 #if 0
     cout << dec << "dw2_out size: " << dw2_out.size() << endl;
-    ofstream fpblk1cv2("..\\Test\\blk1cv2.txt", ios::out);
+    ofstream fpblk1cv2("..\\Test\\blk7cv2.txt", ios::out);
     if (!fpblk1cv2)
         cout << "no such file" << endl;
     for (int h = 0; h < ROW3; ++h) {
@@ -334,7 +334,7 @@ void PosenetBlockAlpha(
             (dw2_out, out, add_in, wgt3, bias3, m0_3, ROW3, COL3, INCH_NUMS3, OUTCH_NUMS3, IS_ADD);
 #if 0
     cout << dec << "out size: " << out.size() << endl;
-    ofstream fpblk1cv3("..\\Test\\blk2cv3.txt", ios::out);
+    ofstream fpblk1cv3("..\\Test\\blk16cv3.txt", ios::out);
     if (!fpblk1cv3)
         cout << "no such file" << endl;
     for (int h = 0; h < ROW3; ++h) {

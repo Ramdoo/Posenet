@@ -31,7 +31,7 @@ void SWU(
 #if SWU_DEBUG
     cout << dec << "line_buffer_size: " << line_buffer_size << endl;
 #endif
-    ap_int<IN_CH*IN_BIT> line_buffer[294][10];  //TODO:一个固定的最大值 [3*(96+2)] [480/48]
+    ap_int<IN_CH*IN_BIT> line_buffer[294][480/IN_CH];  //TODO:一个固定的最大值 [3*(96+2)] [480/16]
     ap_int<IN_CH*IN_BIT> tmp_in;
 
     ap_uint<1> initial_fill = 0;
