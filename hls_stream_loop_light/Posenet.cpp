@@ -424,11 +424,11 @@ void PosenetAlpha(
         ap_uint<8> COL1 = config[iter_block].iw;
         ap_uint<8> COL2 = config[iter_block].iw;
         ap_uint<8> COL3 = config[iter_block].iw3;
-        ap_uint<4> INCH_NUMS1 = config[iter_block].ic_nums1;
-        ap_uint<4> OUTCH_NUMS1 = config[iter_block].ic_nums2;
-        ap_uint<4> CH_NUMS2 = config[iter_block].ic_nums2;
-        ap_uint<4> INCH_NUMS3 = config[iter_block].ic_nums2;
-        ap_uint<4> OUTCH_NUMS3 = config[iter_block].oc_nums3;
+        ap_uint<8> INCH_NUMS1 = config[iter_block].ic_nums1;
+        ap_uint<8> OUTCH_NUMS1 = config[iter_block].ic_nums2;
+        ap_uint<8> CH_NUMS2 = config[iter_block].ic_nums2;
+        ap_uint<8> INCH_NUMS3 = config[iter_block].ic_nums2;
+        ap_uint<8> OUTCH_NUMS3 = config[iter_block].oc_nums3;
         ap_uint<2> STRIDE = config[iter_block].s;
         ap_uint<1> IS_ADD = config[iter_block].is_add;
         ap_uint<1> NEXT_ADD = config[iter_block].next_add;
